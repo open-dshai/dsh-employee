@@ -3,8 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
 [![npm version](https://img.shields.io/npm/v/@deepseek-ai/dsh-client-ui-marketplace.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-client-ui-marketplace)
 
-English | [中文](README.zh.md)
-
 A **Marketplace** panel for the DeepSeek Harness web client. It surfaces three
 catalogs — **Experts (专家)**, **Skills (技能)**, and **Connectors (连接器)** —
 sourced from the [skill.dualpaw.com](https://skill.dualpaw.com) registry, and
@@ -33,6 +31,7 @@ An invocation bridge listens for `dsh:invoke-expert` / `dsh:invoke-skill` /
 pre-fills the composer, shows a "current expert / current skill" badge, and
 injects a 🔌 chip next to the composer that pops up a per-connector toggle
 popover.
+
 ---
 
 ## Features
@@ -81,12 +80,14 @@ Hovering an expert card reveals the **召唤 (Invoke)** button:
 
 ## Screenshots
 
-| Panel | Screenshot |
-| --- | --- |
-| **Experts tab** — category rail + expert cards with installed/not-installed tags. | ![Marketplace panel](docs/screenshots/marketplace-panel.png) |
-| **After summoning** — the selected expert is injected into the composer. | ![Expert invoked](docs/screenshots/expert-invoked.png) |
-| **Skills tab** — searchable skill list with favorite / publish affordances. | ![Skills tab](docs/screenshots/skills-tab.png) |
-| **Connectors tab** — connector catalog with parameter chips. | ![Connectors tab](docs/screenshots/connectors-tab.png) |
+> Screenshots to be added. Suggested captures:
+>
+> - `docs/screenshots/marketplace-panel.png` — the three-tab panel.
+> - `docs/screenshots/experts-hover.png` — expert card hover with 召唤 button.
+> - `docs/screenshots/params-dialog.png` — ⚙ Parameters dialog with token + register link.
+> - `docs/screenshots/publish-skill.png` — Publish skill dialog.
+
+<!-- ![Marketplace panel](docs/screenshots/marketplace-panel.png) -->
 
 ---
 

@@ -1,0 +1,1704 @@
+/* Marketplace page styles. Token-driven (--dsw-* vars come from ui-theme). */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: var(--dsw-spacing-md, 16px);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsw-spacing-xs, 6px);
+  padding: 0 var(--dsw-spacing-sm, 12px);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--dsw-color-text-secondary, #666);
+  margin: 0;
+}
+
+/* Tab strip */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 var(--dsw-spacing-sm, 12px);
+  border-bottom: 1px solid var(--dsw-color-border, #e5e5e5);
+}
+
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--dsw-color-text-secondary, #666);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 120ms ease, border-color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab:hover {
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+
+.tab.active {
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  border-bottom-color: var(--dsw-color-accent, #1677ff);
+  font-weight: 500;
+}
+
+.tabIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Search bar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px var(--dsw-spacing-sm, 12px) 0;
+}
+
+.search {
+  flex: 1;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 8px;
+  background: var(--dsw-color-bg-input, #fff);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.searchInput:focus {
+  border-color: var(--dsw-color-accent, #1677ff);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--dsw-color-text-tertiary, #999);
+  pointer-events: none;
+}
+
+/* Offline / fallback pill — shown in the experts + skills tab toolbar when
+   every CORS proxy fails and the bundled mock dataset is in use. A small
+   amber dot + label so the user can tell the entries are local samples,
+   not live upstream data. */
+.offlineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--dsw-color-text-secondary, #8c8c8c);
+  background: var(--dsw-color-bg-tertiary, #fafafa);
+  border: 1px solid var(--dsw-color-border-secondary, #e8e8e8);
+  border-radius: 14px;
+  white-space: nowrap;
+  user-select: none;
+  cursor: help;
+  transition: border-color 120ms ease;
+}
+.offlineBadge:hover {
+  border-color: var(--dsw-color-border, #d9d9d9);
+}
+.offlineBadgeDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #faad14;
+  box-shadow: 0 0 0 2px rgba(250, 173, 20, 0.18);
+}
+
+.select {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 8px;
+  background: var(--dsw-color-bg-input, #fff);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Body */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--dsw-spacing-sm, 12px) var(--dsw-spacing-md, 16px);
+}
+
+/* Two-column layout for experts (categories rail + grid) */
+.bodySplit {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--dsw-spacing-md, 16px);
+  align-items: start;
+}
+
+.categoryRail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-radius: 10px;
+  position: sticky;
+  top: 0;
+}
+
+.categoryItem {
+  appearance: none;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--dsw-color-text-secondary, #555);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.categoryItem:hover {
+  background: rgba(22, 119, 255, 0.08);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+
+.categoryItem.active {
+  background: var(--dsw-color-accent, #1677ff);
+  color: #fff;
+  font-weight: 500;
+}
+
+.categoryCount {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Card grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--dsw-spacing-md, 16px);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--dsw-color-bg-card, #fff);
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  text-align: left;
+  appearance: none;
+  color: inherit;
+  font: inherit;
+}
+
+.card:hover {
+  border-color: var(--dsw-color-accent, #1677ff);
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.08);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--dsw-color-accent, #1677ff);
+  outline-offset: 2px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--dsw-color-accent, #1677ff);
+  font-size: 16px;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardCategory {
+  font-size: 12px;
+  color: var(--dsw-color-text-tertiary, #999);
+  margin: 0;
+}
+
+.cardIntro {
+  font-size: 12px;
+  color: var(--dsw-color-text-secondary, #666);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.cardTags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  color: var(--dsw-color-text-secondary, #666);
+  border-radius: 999px;
+}
+
+.tagAccent {
+  background: rgba(22, 119, 255, 0.1);
+  color: var(--dsw-color-accent, #1677ff);
+}
+
+.tagSuccess {
+  background: rgba(82, 196, 26, 0.12);
+  color: #389e0d;
+}
+
+.actionBtn {
+  appearance: none;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: #fff;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.actionBtn:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: var(--dsw-color-accent, #1677ff);
+}
+
+.actionBtnPrimary {
+  background: var(--dsw-color-accent, #1677ff);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: #fff;
+}
+
+.actionBtnPrimary:hover {
+  background: #4096ff;
+  border-color: #4096ff;
+  color: #fff;
+}
+
+.actionBtnDanger {
+  color: #ff4d4f;
+  border-color: #ffccc7;
+}
+
+.actionBtnDanger:hover {
+  background: #fff1f0;
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The "前往授权" connect button on each connector card. Hidden by default
+   and revealed on card hover (or keyboard focus), so the grid stays clean
+   in long lists. Disconnect / pending buttons ignore this — they keep
+   their full text label so destructive / in-flight actions stay visible. */
+.actionBtnIconOnly {
+  padding: 0;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.actionBtnHoverOnly {
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.card:hover .actionBtnHoverOnly,
+.card:focus-within .actionBtnHoverOnly,
+.actionBtnHoverOnly:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.iconBtn {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--dsw-color-text-tertiary, #999);
+  display: inline-flex;
+  align-items: center;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.iconBtn:hover {
+  color: var(--dsw-color-accent, #1677ff);
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+.favoriteIcon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 16px;
+  color: var(--dsw-color-text-tertiary, #ccc);
+}
+
+.favoriteIconActive {
+  color: #faad14;
+}
+
+/* Clickable favorite (heart) button — top-right of expert/skill cards. */
+.favoriteBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--dsw-color-text-tertiary, #ccc);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 120ms ease, background 120ms ease;
+}
+.favoriteBtn:hover {
+  color: #faad14;
+  background: rgba(250, 173, 20, 0.1);
+}
+.favoriteBtnActive {
+  color: #faad14;
+}
+.favoriteBtnActive:hover {
+  color: #d48806;
+}
+
+/* Inline variant — sits inside a flex corner container (skill cards). */
+.favoriteBtnInline {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--dsw-color-text-tertiary, #ccc);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 120ms ease, background 120ms ease;
+}
+.favoriteBtnInline:hover {
+  color: #faad14;
+  background: rgba(250, 173, 20, 0.1);
+}
+
+/* Status row inside card */
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--dsw-color-text-tertiary, #999);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+.statusDotConnected {
+  background: #52c41a;
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.18);
+}
+
+.statusRowMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  color: var(--dsw-color-text-secondary, #555);
+  font-size: 11px;
+}
+
+.statusRowMetaIcon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.popupBlockedHint {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(250, 173, 20, 0.10);
+  border: 1px solid rgba(250, 173, 20, 0.40);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #ad6800;
+  line-height: 1.45;
+}
+
+/* Empty / error / loading */
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--dsw-color-text-tertiary, #999);
+  font-size: 13px;
+  text-align: center;
+}
+
+.errorBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 20px;
+  color: #ff4d4f;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Detail view (modal-ish overlay) */
+.detailOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 40px;
+}
+
+.detailPanel {
+  background: var(--dsw-color-bg-card, #fff);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--dsw-color-border, #e5e5e5);
+}
+
+.detailAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--dsw-color-accent, #1677ff);
+  font-size: 18px;
+}
+
+.detailAvatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.detailTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailName {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  margin: 0;
+}
+
+.detailMeta {
+  font-size: 12px;
+  color: var(--dsw-color-text-tertiary, #999);
+  margin: 0;
+}
+
+.detailClose {
+  appearance: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--dsw-color-text-tertiary, #999);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.detailClose:hover { background: var(--dsw-color-bg-soft, #f5f7fa); }
+
+.detailBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+
+.detailSection h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-color-text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px;
+}
+
+.detailSection p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.detailSection pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-radius: 6px;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.detailFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+/* Skeleton / loading shimmer */
+.skeleton {
+  background: linear-gradient(90deg, var(--dsw-color-bg-soft, #f5f7fa) 25%, #ececec 50%, var(--dsw-color-bg-soft, #f5f7fa) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeletonCard {
+  pointer-events: none;
+}
+
+.skeletonCard .skeletonLine {
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.skeletonCard .skeletonTitle {
+  height: 16px;
+  width: 50%;
+  margin-bottom: 12px;
+}
+
+.skeletonCard .skeletonAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bodySplit {
+    grid-template-columns: 1fr;
+  }
+  .categoryRail {
+    flex-direction: row;
+    overflow-x: auto;
+    position: static;
+  }
+  .categoryItem { white-space: nowrap; }
+  .grid { grid-template-columns: 1fr; }
+  .detailOverlay { padding: 0; }
+  .detailPanel { max-height: 100vh; border-radius: 0; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Center-column takeover (global rules, attribute-scoped).
+   The `conversation` slot is single-occupant (ui-conversation); the marketplace
+   panel rides inside the center column as an extra trailing child, hidden
+   unless the panel is active. While active, the conversation content
+   underneath is hidden (it stays mounted and stateful).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+[data-pane='conversation'],
+[class*='centerCol'] {
+  position: relative;
+}
+
+.marketplaceView {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 60;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-base, var(--dsw-color-bg-card, #ffffff));
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  font-family: var(--dsw-font-family, inherit);
+}
+
+/* Single-occupant center column: show the view only when marketplace is the
+   active panel (and neither sibling — taskboard / ssh — is fighting). */
+html[data-dsh-marketplace-active]:not([data-dsh-taskboard-active]):not([data-dsh-ssh-active]) [data-dsh-marketplace-view] {
+  display: block;
+}
+
+/* Hide the conversation subtree underneath while the panel is active. The
+   !important beats the host's inline `display: contents` wrapper. */
+html[data-dsh-marketplace-active]:not([data-dsh-taskboard-active]):not([data-dsh-ssh-active]) [data-pane='conversation'] > :not([data-dsh-marketplace-view]),
+html[data-dsh-marketplace-active]:not([data-dsh-taskboard-active]):not([data-dsh-ssh-active]) [class*='centerCol'] > :not([data-dsh-marketplace-view]) {
+  display: none !important;
+}
+
+/* ── panel frame ─────────────────────────────────────────────────────────── */
+
+.panelRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  flex: none;
+}
+
+.panelHeaderTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panelHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.panelSettingsBtn,
+.panelClose {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--dsw-color-text-tertiary, #999);
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.panelSettingsBtn:hover,
+.panelClose:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+
+/* Token-configured variant — turns the ⚙ icon accent-blue so users can tell
+   at a glance whether they've already authorized the marketplace. */
+.panelSettingsBtn[data-configured='true'] {
+  color: var(--dsw-color-accent, #1677ff);
+}
+.panelSettingsBtn[data-configured='true']:hover {
+  background: rgba(22, 119, 255, 0.10);
+  color: var(--dsw-color-accent, #1677ff);
+}
+
+.panelBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsw-spacing-md, 16px);
+  padding-bottom: 16px;
+}
+
+/* ── sidebar entry row ────────────────────────────────────────────────────── */
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary, var(--dsw-color-text-secondary, #666));
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.entry:hover {
+  background: var(--dsw-specific-sidebar-nav-item-hover, var(--dsw-color-bg-soft, #f5f7fa));
+  color: var(--dsw-alias-label-primary, var(--dsw-color-text-primary, #1a1a1a));
+}
+
+.entry[data-active] {
+  background: var(--dsw-specific-sidebar-nav-item-active, rgba(22, 119, 255, 0.1));
+  color: var(--dsw-alias-label-primary, var(--dsw-color-text-primary, #1a1a1a));
+  font-weight: 600;
+}
+
+.entryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.entryLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed rail: icon-only, centered, matching the shell's 56px rail. */
+[data-dsh-frame][data-sidebar-collapsed] .entry {
+  justify-content: center;
+  padding: 0;
+}
+
+[data-dsh-frame][data-sidebar-collapsed] .entryLabel {
+  display: none;
+}
+
+/* ── skill card corner icon (download / try) ──────────────────────────────
+   The corner pill replaces the legacy footer "试一试" button. It is
+   absolutely positioned in the card's top-right corner; on installed cards
+   hovering the ✓ reveals a "试一试" popover to its left.
+   ─────────────────────────────────────────────────────────────────────── */
+
+.cardCorner {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cardCorner > * {
+  pointer-events: auto;
+}
+
+.cornerIconBtn {
+  appearance: none;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-card, #fff);
+  color: var(--dsw-color-text-secondary, #555);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.cornerIconBtn:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: var(--dsw-color-accent, #1677ff);
+  transform: translateY(-1px);
+}
+
+.cornerIconBtn:disabled {
+  cursor: progress;
+  color: var(--dsw-color-accent, #1677ff);
+  border-color: var(--dsw-color-accent, #1677ff);
+  background: rgba(22, 119, 255, 0.08);
+}
+
+.cornerIconBtnInstalled {
+  background: rgba(82, 196, 26, 0.1);
+  border-color: rgba(82, 196, 26, 0.4);
+  color: #389e0d;
+}
+
+.cornerIconBtnInstalled:hover {
+  background: rgba(82, 196, 26, 0.18);
+  border-color: #52c41a;
+  color: #389e0d;
+}
+
+.cornerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* "试一试" popover — hidden by default; revealed when the card itself is
+   hovered (so a small but explicit motion is required, matching the user's
+   "鼠标移到勾选时 提示试一试" spec). */
+.cornerPill {
+  appearance: none;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-card, #fff);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(8px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.cornerPillTry {
+  font-weight: 500;
+}
+
+/* Hover-reveal: only shows when the ✓ icon itself is hovered AND the
+   skill is installed (installed-only). Matches the spec "鼠标移到勾选时
+   提示试一试" — the pill appears as a tooltip anchored to the checkmark. */
+.cardCorner:has(.cornerIconBtnInstalled:hover) .cornerPillTry {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+}
+
+.cornerPill:hover {
+  background: var(--dsw-color-accent, #1677ff);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: #fff;
+}
+
+/* ── expert card hover-reveal summon button ──────────────────────────────
+   The summon button is hidden by default (opacity 0) and slides up from
+   the bottom-right on card hover — matching the user's "鼠标移动到当前
+   专家框时 才提示召唤按钮" spec. The button is full-width inside the card
+   and overlays the footer area.
+   ─────────────────────────────────────────────────────────────────────── */
+
+.expertSummon {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: transparent;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+  z-index: 3;
+}
+
+.expertSummonInstalled {
+  background: rgba(82, 196, 26, 0.1);
+  border-color: rgba(82, 196, 26, 0.4);
+  color: #389e0d;
+}
+
+.expertSummonNotInstalled {
+  background: var(--dsw-color-accent, #1677ff);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: #fff;
+}
+
+/* Reveal on card hover. */
+.card:hover .expertSummon {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.card:hover .expertSummon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.25);
+}
+
+.card:hover .expertSummonInstalled:hover {
+  background: rgba(82, 196, 26, 0.18);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.2);
+}
+
+.expertSummon:disabled {
+  cursor: progress;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  background: rgba(22, 119, 255, 0.6);
+}
+
+.expertSummonIcon {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.expertSummonText {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Status badges inside the footer (replaces a static star cluster). */
+.tagDanger {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+/* ── connector toolbar + params drawer ───────────────────────────────── */
+
+.fillToast {
+  font-size: 12px;
+  color: #389e0d;
+  background: rgba(82, 196, 26, 0.10);
+  border: 1px solid rgba(82, 196, 26, 0.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  animation: fadeOut 4s ease-out forwards;
+}
+@keyframes fadeOut {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.cardActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.actionBtnFill {
+  border-color: rgba(22, 119, 255, 0.30);
+  color: var(--dsw-color-accent, #1677ff);
+}
+.actionBtnFill:hover {
+  background: rgba(22, 119, 255, 0.08);
+  color: var(--dsw-color-accent, #1677ff);
+}
+
+.paramsDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.paramsDrawer {
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--dsw-color-bg-card, #fff);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.paramsDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--dsw-color-border, #e5e5e5);
+}
+
+.paramsDrawerTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+
+.paramsDrawerClose {
+  appearance: none;
+  border: none;
+  background: none;
+  font-size: 22px;
+  color: var(--dsw-color-text-tertiary, #999);
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 4px;
+}
+.paramsDrawerClose:hover { background: var(--dsw-color-bg-soft, #f5f7fa); }
+
+.paramsDrawerIntro {
+  padding: 12px 20px;
+  font-size: 12px;
+  color: var(--dsw-color-text-secondary, #666);
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-bottom: 1px solid var(--dsw-color-border, #e5e5e5);
+}
+
+.paramsDrawerBody {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.paramsGroup {
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 0;
+}
+
+.paramsLegend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-color-text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 6px;
+}
+
+.paramsLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.paramsLabel > span {
+  font-size: 11px;
+  color: var(--dsw-color-text-secondary, #666);
+}
+
+.paramsInput {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 6px;
+  background: var(--dsw-color-bg-input, #fff);
+  font-size: 13px;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  outline: none;
+}
+.paramsInput:focus {
+  border-color: var(--dsw-color-accent, #1677ff);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+/* Multi-line variant for the publish-skill dialog (instructions field). */
+.paramsTextarea {
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 6px;
+  background: var(--dsw-color-bg-input, #fff);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+}
+.paramsTextarea:focus {
+  border-color: var(--dsw-color-accent, #1677ff);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+/* Toolbar text+icon button (Skills tab "发布技能") — same visual weight as
+ * the search box so it reads as a peer action, not a footer link. */
+.toolbarActionBtn {
+  appearance: none;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-input, #fff);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 30px;
+  font-size: 13px;
+  flex: none;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.toolbarActionBtn:hover {
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: var(--dsw-color-accent, #1677ff);
+}
+
+.paramsDrawerFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+/* ── per-card params button (⚙) + ⚠ unconfigured indicator ──────── */
+
+.cardCornerConnector {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+.cardCornerConnector > * { pointer-events: auto; }
+
+.cardCornerParamsBtn {
+  appearance: none;
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-card, #fff);
+  color: var(--dsw-color-text-secondary, #555);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.cardCornerParamsBtn:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  border-color: var(--dsw-color-accent, #1677ff);
+  color: var(--dsw-color-accent, #1677ff);
+}
+.cardCornerParamsBtn[data-configured='false'] {
+  color: #faad14;
+  border-color: rgba(250, 173, 20, 0.55);
+  background: rgba(250, 173, 20, 0.08);
+}
+
+.cardUnconfiguredBadge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(250, 173, 20, 0.12);
+  color: #d48806;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid rgba(250, 173, 20, 0.45);
+  cursor: help;
+}
+
+/* per-card enable switch (iOS-style, mirrors `.dshConnectorPopoverToggle`) */
+.cardSwitch {
+  appearance: none;
+  border: none;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.16);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  transition: background 120ms ease;
+}
+.cardSwitch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 140ms ease;
+}
+.cardSwitch[data-on='true'] {
+  background: #52c41a;
+}
+.cardSwitch[data-on='true']::after {
+  transform: translateX(14px);
+}
+
+/* card dimmed when connector is disabled (in enabled list, this should
+   not normally appear — the row is filtered into the disabled section —
+   but the disabled-section cards still need the muted look). */
+.card[data-enabled='false'] {
+  opacity: 0.62;
+  filter: grayscale(0.35);
+}
+
+/* missing-required params warning strip inside the card */
+.cardMissingParams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #ad6800;
+  background: rgba(250, 173, 20, 0.10);
+  border: 1px solid rgba(250, 173, 20, 0.35);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-top: 2px;
+}
+.cardMissingParams code {
+  font-family: var(--dsw-font-family-mono, ui-monospace, SFMono-Regular, monospace);
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* disabled-section disclosure (below the main grid) */
+.connectorDisabledSection {
+  margin-top: 24px;
+  border-top: 1px dashed var(--dsw-color-border, #e5e5e5);
+  padding-top: 14px;
+}
+.connectorDisabledSection > summary {
+  appearance: none;
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--dsw-color-text-secondary, #555);
+  user-select: none;
+}
+.connectorDisabledSection > summary::-webkit-details-marker { display: none; }
+.connectorDisabledSection > summary:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+}
+.connectorDisabledSection > summary::before {
+  content: '▸';
+  font-size: 10px;
+  color: var(--dsw-color-text-tertiary, #999);
+}
+.connectorDisabledSection[open] > summary::before { content: '▾'; }
+.connectorDisabledSectionHint {
+  font-size: 12px;
+  color: var(--dsw-color-text-tertiary, #888);
+  margin: 8px 4px 14px;
+}
+.connectorDisabledEmpty {
+  font-size: 12px;
+  color: var(--dsw-color-text-tertiary, #888);
+  margin: 4px 8px;
+}
+
+/* ── single-connector params dialog (lighter than the bulk drawer) ── */
+.connectorParamDialog {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--dsw-color-bg-card, #fff);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.connectorParamDialogBody {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+.connectorParamRequired {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+/* ── composer connector popover (host global, injected from plugin) ── */
+
+.dshConnectorAnchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(22, 119, 255, 0.06);
+  color: var(--dsw-color-accent, #1677ff);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+  /* Sit naturally inside the composer's action row — no `position: fixed`
+     and no z-index, so the chip can never be occluded by sibling
+     dropdown menus (Workspace Write, model picker). */
+  position: relative;
+  margin-left: 4px;
+  flex: none;
+  font: inherit;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dshConnectorAnchor:hover {
+  background: rgba(22, 119, 255, 0.12);
+  border-color: rgba(22, 119, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.dshConnectorAnchor[data-has-connected='true']::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #52c41a;
+  box-shadow: 0 0 0 2px var(--dsw-color-bg-card, #fff);
+}
+
+.dshConnectorPopover {
+  /* Inline panel — a normal-flow DOM child of the composer card, sitting
+     ABOVE the textarea wrapper when open. No `position: absolute`, no
+     z-index hack: the panel participates in normal layout and lives in
+     the composer card's local stacking context, so Workspace Write and
+     model picker dropdowns cannot occlude it. */
+  position: relative;
+  width: 100%;
+  margin: 0 0 8px 0;
+  padding: 8px 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--dsw-color-bg-card, #fff);
+  border: 1px solid var(--dsw-color-border, #e5e5e5);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: var(--dsw-font-family, inherit);
+  color: var(--dsw-color-text-primary, #1a1a1a);
+  display: none;
+  z-index: auto;
+}
+
+/* The popover is now a SIBLING (not a child) of the anchor, so toggle
+   visibility via its own data attribute, set by `invoke.ts`. The old
+   `[data-open='true'] [data-open='true']` parent→descendant selector
+   is intentionally removed — it only matched the old nested DOM. */
+.dshConnectorPopover[data-open='true'] {
+  display: block;
+}
+
+.dshConnectorPopoverItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+/* Switched off for this conversation — dim the row so it is obviously
+   not callable, and flash the label when the user clicks it anyway. */
+.dshConnectorPopoverItem[data-enabled='false'] {
+  opacity: 0.55;
+}
+.dshConnectorPopoverItem[data-rejected='true'] {
+  animation: dshRowNudge 320ms ease;
+}
+@keyframes dshRowNudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.dshConnectorPopoverItem:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+.dshConnectorPopoverAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--dsw-color-accent, #1677ff);
+  overflow: hidden;
+}
+.dshConnectorPopoverAvatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.dshConnectorPopoverBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dshConnectorPopoverName {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dshConnectorPopoverMeta {
+  font-size: 11px;
+  color: var(--dsw-color-text-tertiary, #999);
+}
+
+.dshConnectorPopoverToggle {
+  flex: none;
+  appearance: none;
+  border: none;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms ease;
+}
+.dshConnectorPopoverToggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 140ms ease;
+}
+.dshConnectorPopoverToggle[data-on='true'] {
+  background: #52c41a;
+}
+.dshConnectorPopoverToggle[data-on='true']::after {
+  transform: translateX(14px);
+}
+
+.dshConnectorPopoverManage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px 14px 6px;
+  border-top: 1px solid var(--dsw-color-border, #e5e5e5);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--dsw-color-accent, #1677ff);
+}
+.dshConnectorPopoverManage:hover {
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+/* ── expert token dialog: get-token help section ───────────────────── */
+
+.expertTokenHelp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--dsw-color-border, #e5e5e5);
+  background: var(--dsw-color-bg-soft, #f5f7fa);
+}
+
+.expertTokenHelpText {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-color-text-secondary, #666);
+}
+
+.expertTokenHelpLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-color-accent, #1677ff);
+  text-decoration: none;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(22, 119, 255, 0.35);
+  background: rgba(22, 119, 255, 0.06);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.expertTokenHelpLink:hover {
+  background: rgba(22, 119, 255, 0.12);
+  border-color: var(--dsw-color-accent, #1677ff);
+}
+
+.expertTokenHelpLinkIcon {
+  flex: none;
+}
