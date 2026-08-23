@@ -68,12 +68,14 @@ Token 是解锁所有「写操作」的唯一凭证 —— 收藏专家、发布
 
 ## 界面截图
 
-| 面板 | 截图 |
-| --- | --- |
-| **专家页** — 左侧分类栏 + 带「已安装/未安装」标识的专家卡片。 | ![应用市场面板](docs/screenshots/marketplace-panel.png) |
-| **召唤后** — 选中的专家已注入到对话框中。 | ![召唤专家](docs/screenshots/expert-invoked.png) |
-| **技能页** — 可搜索的技能列表，支持收藏与发布。 | ![技能页](docs/screenshots/skills-tab.png) |
-| **连接器页** — 连接器目录及参数芯片。 | ![连接器页](docs/screenshots/connectors-tab.png) |
+> 截图待补充，建议采集：
+>
+> - `docs/screenshots/marketplace-panel.png` — 三标签页面板。
+> - `docs/screenshots/experts-hover.png` — 专家卡片悬浮显示「召唤」按钮。
+> - `docs/screenshots/params-dialog.png` — ⚙ 参数设置对话框（Token + 注册链接）。
+> - `docs/screenshots/publish-skill.png` — 发布技能对话框。
+
+<!-- ![应用市场面板](docs/screenshots/marketplace-panel.png) -->
 
 ---
 

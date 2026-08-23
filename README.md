@@ -80,12 +80,14 @@ Hovering an expert card reveals the **召唤 (Invoke)** button:
 
 ## Screenshots
 
-| Panel | Screenshot |
-| --- | --- |
-| **Experts tab** — category rail + expert cards with installed/not-installed tags. | ![Marketplace panel](docs/screenshots/marketplace-panel.png) |
-| **After summoning** — the selected expert is injected into the composer. | ![Expert invoked](docs/screenshots/expert-invoked.png) |
-| **Skills tab** — searchable skill list with favorite / publish affordances. | ![Skills tab](docs/screenshots/skills-tab.png) |
-| **Connectors tab** — connector catalog with parameter chips. | ![Connectors tab](docs/screenshots/connectors-tab.png) |
+> Screenshots to be added. Suggested captures:
+>
+> - `docs/screenshots/marketplace-panel.png` — the three-tab panel.
+> - `docs/screenshots/experts-hover.png` — expert card hover with 召唤 button.
+> - `docs/screenshots/params-dialog.png` — ⚙ Parameters dialog with token + register link.
+> - `docs/screenshots/publish-skill.png` — Publish skill dialog.
+
+<!-- ![Marketplace panel](docs/screenshots/marketplace-panel.png) -->
 
 ---
 
