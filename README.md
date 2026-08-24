@@ -82,10 +82,14 @@ Hovering an expert card reveals the **召唤 (Invoke)** button:
 
 > Screenshots to be added. Suggested captures:
 >
-> - `docs/screenshots/marketplace-panel.png` — the three-tab panel.
-> - `docs/screenshots/experts-hover.png` — expert card hover with 召唤 button.
-> - `docs/screenshots/params-dialog.png` — ⚙ Parameters dialog with token + register link.
-> - `docs/screenshots/publish-skill.png` — Publish skill dialog.
+> - ![Experts](docs/screenshots/marketplace-panel.png) 
+   — Experts.
+> - ![Experts](docs/screenshots/expert-invoked.png) 
+   — expert card hover with 召唤 button.
+> - ![Skills](docs/screenshots/skills-tab.png) 
+   — ⚙ skills 
+> - ![Connectors](docs/screenshots/connectors-tab.png) 
+   — connectors.
 
 <!-- ![Marketplace panel](docs/screenshots/marketplace-panel.png) -->
 

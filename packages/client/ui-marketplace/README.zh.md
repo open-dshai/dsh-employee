@@ -70,10 +70,10 @@ Token 是解锁所有「写操作」的唯一凭证 —— 收藏专家、发布
 
 > 截图待补充，建议采集：
 >
-> - `docs/screenshots/marketplace-panel.png` — 三标签页面板。
-> - `docs/screenshots/experts-hover.png` — 专家卡片悬浮显示「召唤」按钮。
-> - `docs/screenshots/params-dialog.png` — ⚙ 参数设置对话框（Token + 注册链接）。
-> - `docs/screenshots/publish-skill.png` — 发布技能对话框。
+> - [![三标签页面板](docs/screenshots/marketplace-panel.png)] — 三标签页面板。
+> - [![专家卡片悬浮显示「召唤」按钮](docs/screenshots/experts-hover.png)] — 专家卡片悬浮显示「召唤」按钮。
+> - [![⚙ 参数设置对话框](docs/screenshots/params-dialog.png)] — ⚙ 参数设置对话框（Token + 注册链接）。
+> - [![发布技能对话框](docs/screenshots/publish-skill.png)] — 发布技能对话框。
 
 <!-- ![应用市场面板](docs/screenshots/marketplace-panel.png) -->
 
