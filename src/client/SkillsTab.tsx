@@ -4,8 +4,12 @@
  * Card top-right icon: replaces the legacy footer "试一试" button.
  *   - default: `+`  (always visible, label "下载")
  *   - on click: spinner ("下载中…")
- *   - after download: `✓`  (always visible, label "已下载")
- *   - hover `✓`: a floating "试一试" pill appears next to it; click jumps to the composer.
+ *   - after download: `✓` is always visible (label "已下载"). Two pills
+ *     sit to the left of the ✓: 「试一试」 (jumps to the composer with
+ *     the skill prefilled) and 「卸载」 (removes the skill from
+ *     ~/.agents/skills). Both pills are always rendered for installed
+ *     cards; hovering each pill recolors it (accent / danger-red) for
+ *     click feedback.
  */
 
 import { useState, useEffect } from 'react'
@@ -223,8 +227,9 @@ function SkillCard({ row, controller, onOpen, onTry, t }: SkillCardProps): JSX.E
  * every render, dispatches downloads / invokes as the user clicks.
  *
  * Layout: a chip area absolutely-positioned in the card's top-right corner
- * (`styles.cardCorner`). The download icon lives there permanently once
- * installed (✓), and the "试一试" popover floats to its left on hover.
+ * (`styles.cardCorner`). The download icon (`✓` once installed) sits at the
+ * right end; the 「试一试」 and 「卸载」 pills always render to its left
+ * on installed cards (no hover gating — the affordance is permanent).
  */
 function SkillCardCorner({
   slug,
@@ -256,6 +261,13 @@ function SkillCardCorner({
   const handleTry = (e: React.MouseEvent): void => {
     e.stopPropagation()
     onTry()
+  }
+
+  const handleUninstall = (e: React.MouseEvent): void => {
+    e.stopPropagation()
+    void controller.uninstallSkill(slug).catch(() => {
+      if (typeof window !== 'undefined') window.alert(t('skillUninstallFailed'))
+    })
   }
 
   // Choose the label/tooltip/icon for the current state.
@@ -294,9 +306,21 @@ function SkillCardCorner({
           type="button"
           className={`${styles.cornerPill} ${styles.cornerPillTry}`}
           title={t('skillTryHint')}
+          aria-label={t('skillTryHint')}
           onClick={handleTry}
         >
           {t('skillTryHint')}
+        </button>
+      )}
+      {installed && !downloading && (
+        <button
+          type="button"
+          className={`${styles.cornerPill} ${styles.cornerPillUninstall}`}
+          title={t('skillUninstall')}
+          aria-label={t('skillUninstall')}
+          onClick={handleUninstall}
+        >
+          {t('skillUninstall')}
         </button>
       )}
       <button

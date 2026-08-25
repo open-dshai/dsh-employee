@@ -978,9 +978,16 @@ html[data-dsh-marketplace-active]:not([data-dsh-taskboard-active]):not([data-dsh
   font-weight: 600;
 }
 
-/* "试一试" popover — hidden by default; revealed when the card itself is
-   hovered (so a small but explicit motion is required, matching the user's
-   "鼠标移到勾选时 提示试一试" spec). */
+/* Pill-style buttons that sit permanently to the left of the installed
+   ✓. Two pills are rendered (and only those two are rendered) when a
+   skill is installed:
+     • 「试一试」 — `cornerPillTry` — jumps to the composer with `/<slug>`
+       prefilled (skill invocation).
+     • 「卸载」 — `cornerPillUninstall` — removes `~/.agents/skills/<slug>/`.
+   Both pills stay visible at all times on installed cards; the hover
+   effect is reserved for the pill itself (color flip to accent / danger)
+   so the affordance is unambiguous. The pills are still suppressed for
+   non-installed skills because their JSX is gated by `installed`. */
 .cornerPill {
   appearance: none;
   border: 1px solid var(--dsw-color-border, #e5e5e5);
@@ -991,29 +998,27 @@ html[data-dsh-marketplace-active]:not([data-dsh-taskboard-active]):not([data-dsh
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
-  opacity: 0;
-  transform: translateX(8px) scale(0.96);
-  pointer-events: none;
-  transition: opacity 140ms ease, transform 140ms ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .cornerPillTry {
   font-weight: 500;
 }
 
-/* Hover-reveal: only shows when the ✓ icon itself is hovered AND the
-   skill is installed (installed-only). Matches the spec "鼠标移到勾选时
-   提示试一试" — the pill appears as a tooltip anchored to the checkmark. */
-.cardCorner:has(.cornerIconBtnInstalled:hover) .cornerPillTry {
-  opacity: 1;
-  transform: translateX(0) scale(1);
-  pointer-events: auto;
+.cornerPillUninstall {
+  color: var(--dsw-color-text-secondary, #555);
 }
 
 .cornerPill:hover {
   background: var(--dsw-color-accent, #1677ff);
   border-color: var(--dsw-color-accent, #1677ff);
+  color: #fff;
+}
+
+.cornerPillUninstall:hover {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
   color: #fff;
 }
 

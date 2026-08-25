@@ -92,6 +92,8 @@ export const en = {
   skillAdded: 'Added',
   skillAdding: 'Adding…',
   skillTryHint: 'Try it',
+  skillUninstall: 'Uninstall',
+  skillUninstallFailed: 'Uninstall failed',
 
   // Connectors
   connectorsSubtitle: 'Link external services so the agent can reach them.',
@@ -240,6 +242,8 @@ export const zh: Record<MarketplaceKey, string> = {
   skillAdded: '已下载',
   skillAdding: '下载中…',
   skillTryHint: '试一试',
+  skillUninstall: '卸载',
+  skillUninstallFailed: '卸载失败',
 
   // Connectors
   connectorsSubtitle: '连接外部服务，让智能体能够触达它们。',

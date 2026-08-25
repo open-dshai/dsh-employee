@@ -8,6 +8,7 @@ DeepSeek Harness Web 客户端的**应用市场**面板插件。它整合了三�
 [skill.dualpaw.com](https://skill.dualpaw.com) 注册中心，并支持在对话界面中直接
 浏览、收藏、召唤（调用）与发布。
 
+
 本插件是一个自包含的 Cordis 插件：仅注册 `locale` 能力，并通过
 DOM 注入自己的侧边栏入口与中栏面板，**无需改动宿主网关或任何 slot**。
 

@@ -139,7 +139,13 @@ function mockPayloadFor<T>(path: string): T | undefined {
   }
   if (base !== undefined && base.startsWith('/skills/')) {
     const slug = decodeURIComponent(base.slice('/skills/'.length))
-    const skill = MOCK_SKILLS.find((s) => s['slug'] === slug)
+    // A skill may be looked up under its Chinese display name when the
+    // upstream left `slug` empty and the client derived the install slug
+    // from the (sanitized) display name. Match either form.
+    const slugify = (s: string): string => s.trim().replace(/[\s/\\]+/g, '-').replace(/^-+|-+$/g, '')
+    const skill = MOCK_SKILLS.find(
+      (s) => s['slug'] === slug || slugify(String(s['displayName'] ?? '')) === slug,
+    )
     if (skill !== undefined) {
       return {
         code: 0,

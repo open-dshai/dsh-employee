@@ -275,9 +275,21 @@ function asExpertDetail(raw: Record<string, unknown>, upstream: string): ExpertD
 function asSkill(raw: Record<string, unknown>): SkillRow {
   const tags = (raw['tags'] && typeof raw['tags'] === 'object' ? raw['tags'] : {}) as Record<string, string>
   const stats = (raw['stats'] && typeof raw['stats'] === 'object' ? raw['stats'] : {}) as Record<string, number>
+  // The install route keys every skill by `slug` (it becomes the on-disk
+  // directory name under ~/.agents/skills/<slug>/ and the slash-command
+  // trigger). Some marketplaces expose skills whose *only* identifier is a
+  // Chinese display name and leave `slug` empty, so we fall back to the
+  // display name (sanitized: whitespace / path separators → dashes) to give
+  // those skills a valid slug they can install and invoke under. The human
+  // `displayName` is kept untouched for the card / SKILL.md heading.
+  const displayName = String(raw['displayName'] ?? raw['slug'] ?? '')
+  const rawSlug = String(raw['slug'] ?? '').trim()
+  const slugify = (s: string): string =>
+    s.trim().replace(/[\s/\\]+/g, '-').replace(/^-+|-+$/g, '')
+  const slug = rawSlug.length > 0 ? slugify(rawSlug) : slugify(displayName)
   return {
-    slug: String(raw['slug'] ?? ''),
-    displayName: String(raw['displayName'] ?? raw['slug'] ?? ''),
+    slug,
+    displayName,
     summary: String(raw['summary'] ?? ''),
     version: String(raw['version'] ?? '0.0.0'),
     tags,
@@ -902,10 +914,36 @@ export class MarketplaceStore {
     return this.snapshot.install.installedExperts.has(expertId)
   }
 
-  /** Simulate a skill download. Real builds would fetch a payload via api.ts;
-   *  here we just toggle the flag after a short spinner window so the UI
-   *  behavior (button → spinner → check) is testable end to end. */
-  installSkill(slug: string): Promise<void> {
+  /** Fetch the skill payload (upstream or bundled fallback) and hand it to
+   *  the plugin's host route, which writes `~/.agents/skills/<slug>/SKILL.md`.
+   *  Returns true on success; never throws — callers decide how a failed
+   *  write surfaces (the card corner simply reverts to "+"). */
+  private async writeSkillToDisk(slug: string): Promise<boolean> {
+    try {
+      const detail = await fetchJson<{ skill: Record<string, unknown> }>(`/skills/${encodeURIComponent(slug)}`)
+      const skill = asSkillDetail(detail.skill ?? {})
+      const res = await fetch('/plugins/ui-marketplace/install-skill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          slug,
+          displayName: skill.displayName,
+          summary: skill.summary,
+          version: skill.version,
+          description: skill.description ?? '',
+          instructions: skill.instructions ?? '',
+        }),
+      })
+      return res.ok
+    } catch {
+      return false
+    }
+  }
+
+  /** Install a skill onto the local machine: the host route writes it to
+   *  `~/.agents/skills/<slug>/SKILL.md`. The promise rejects when the write
+   *  fails so callers can log the reason; the corner button reverts to "+". */
+  async installSkill(slug: string): Promise<void> {
     if (this.snapshot.install.downloadingSkills.has(slug)) {
       return Promise.resolve()
     }
@@ -914,21 +952,41 @@ export class MarketplaceStore {
       downloading.add(slug)
       return { ...s, install: { ...s.install, downloadingSkills: downloading } }
     })
-    return new Promise((resolve) => {
-      // Spinner window — ~700ms feels like a real install without burning time.
-      setTimeout(() => {
-        this.store.update((s) => {
-          const installed = new Set(s.install.installedSkills)
-          installed.add(slug)
-          const downloading = new Set(s.install.downloadingSkills)
-          downloading.delete(slug)
-          const next: InstallState = { ...s.install, installedSkills: installed, downloadingSkills: downloading }
-          saveInstallState(next)
-          return { ...s, install: next }
-        })
-        resolve()
-      }, 700)
+    const ok = await this.writeSkillToDisk(slug)
+    this.store.update((s) => {
+      const installed = new Set(s.install.installedSkills)
+      if (ok) installed.add(slug)
+      const downloading = new Set(s.install.downloadingSkills)
+      downloading.delete(slug)
+      const next: InstallState = { ...s.install, installedSkills: installed, downloadingSkills: downloading }
+      saveInstallState(next)
+      return { ...s, install: next }
     })
+    if (!ok) throw new Error(`skill install failed: ${slug}`)
+  }
+
+  /** Uninstall a skill: the host route removes `~/.agents/skills/<slug>/`
+   *  and the local install flag is cleared either way (a stale flag would
+   *  show "已下载" for a skill that no longer exists on disk). Rejects when
+   *  the host round-trip fails so the caller can surface the reason. */
+  async uninstallSkill(slug: string): Promise<void> {
+    let ok = false
+    try {
+      const res = await fetch('/plugins/ui-marketplace/uninstall-skill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      })
+      ok = res.ok
+    } catch { ok = false }
+    this.store.update((s) => {
+      const installed = new Set(s.install.installedSkills)
+      installed.delete(slug)
+      const next: InstallState = { ...s.install, installedSkills: installed }
+      saveInstallState(next)
+      return { ...s, install: next }
+    })
+    if (!ok) throw new Error(`skill uninstall failed: ${slug}`)
   }
 
   /** Read the persisted params for a connector (empty object if none). */
@@ -1090,26 +1148,25 @@ export class MarketplaceStore {
     if (skills === undefined) {
       bundled = await this.fetchExpertSkillSlugs(expertId)
     }
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        this.store.update((s) => {
-          const installed = new Set(s.install.installedExperts)
-          installed.add(expertId)
-          const downloading = new Set(s.install.downloadingExperts)
-          downloading.delete(expertId)
-          const next: InstallState = { ...s.install, installedExperts: installed, downloadingExperts: downloading }
-          // Bundled skills land in local storage alongside the expert so
-          // the Skills tab shows them as "已下载" without a second click.
-          if (bundled.length > 0) {
-            const installedSkills = new Set(next.installedSkills)
-            for (const slug of bundled) installedSkills.add(slug)
-            next.installedSkills = installedSkills
-          }
-          saveInstallState(next)
-          return { ...s, install: next }
-        })
-        resolve()
-      }, 800)
+    // Bundled skills land on disk (~/.agents/skills/<slug>/SKILL.md)
+    // alongside the expert so the Skills tab shows them as "已下载"
+    // without a second click. Best-effort per skill: one failed write
+    // must not block the expert itself.
+    const written = await Promise.all(bundled.map((slug) => this.writeSkillToDisk(slug)))
+    this.store.update((s) => {
+      const installed = new Set(s.install.installedExperts)
+      installed.add(expertId)
+      const downloading = new Set(s.install.downloadingExperts)
+      downloading.delete(expertId)
+      const next: InstallState = { ...s.install, installedExperts: installed, downloadingExperts: downloading }
+      const okSlugs = bundled.filter((_, i) => written[i])
+      if (okSlugs.length > 0) {
+        const installedSkills = new Set(next.installedSkills)
+        for (const slug of okSlugs) installedSkills.add(slug)
+        next.installedSkills = installedSkills
+      }
+      saveInstallState(next)
+      return { ...s, install: next }
     })
   }
 

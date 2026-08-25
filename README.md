@@ -7,7 +7,7 @@ A **Marketplace** panel for the DeepSeek Harness web client. It surfaces three
 catalogs — **Experts (专家)**, **Skills (技能)**, and **Connectors (连接器)** —
 sourced from the [skill.dualpaw.com](https://skill.dualpaw.com) registry, and
 lets you browse, favorite, summon (invoke), and publish directly from the chat
-UI.
+UI. 
 
 The plugin is a self-contained Cordis plugin: it registers only the `locale`
 capability and DOM-injects its own sidebar entry and center-column panel. No
@@ -48,6 +48,7 @@ A **⚙** icon in the panel header opens the shared **Parameters** dialog
 - Paste your API token (stored **locally on this device only**).
 - Jump straight to the sign-up / token page:
   **<https://skill.dualpaw.com/register>**
+
 
 The token is the single credential that gates every upstream mutation —
 favoriting an expert, publishing a skill, and connectors that require real

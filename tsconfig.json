@@ -2,7 +2,11 @@
   "extends": "../../../tsconfig.base.client.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib/types"
+    "outDir": "lib/types",
+    // The node half (src/index.ts) registers a webServer route and uses
+    // node:fs/node:os/node:path — ambient node types are required on top of
+    // the browser lib the client half inherits from the base client config.
+    "types": ["node"]
   },
   "include": [
     "src"
@@ -13,6 +17,9 @@
     },
     {
       "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../host/webserver"
     },
     {
       "path": "../runtime"
