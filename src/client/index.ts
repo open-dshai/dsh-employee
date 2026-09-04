@@ -23,6 +23,9 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { MarketplaceStore } from './store.ts'
+
+/** Plugin identity — matches the `id` in cordis.patch.yml. */
+export const name = 'ui-marketplace'
 import { MarketplaceController } from './MarketplaceController.ts'
 import { InvocationBridge } from './invoke.ts'
 import { mountMarketplaceEntry } from './sidebar-entry.ts'

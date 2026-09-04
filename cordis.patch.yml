@@ -1,0 +1,17 @@
+# dsh-employee-marketplace bundle patch: mounts the Marketplace plugin into the
+# host composition of a dsh profile. The plugin is dual-face — its node half
+# registers the /plugins/ui-marketplace/install-skill and
+# /plugins/ui-marketplace/uninstall-skill routes (materializing skills under
+# ~/.agents/skills/<slug>/SKILL.md), while its browser half (declared via the
+# package.json `dsh.client` field + exports["./client"]) ships the
+# Experts / Skills / Connectors sidebar entry and center-column panel.
+#
+# Install: `dsh plugin --profile <name> add <this package>` (npm, a local path,
+# or a git URL). The `dsh plugin` command pnpm-installs the package into the
+# profile and reconciles it into the profile's `dsh.profile.bundles` layer list.
+- insert:
+    - id: ui-marketplace
+      # Node-resolvable package name — must stay in sync with package.json
+      # `name`. Quoted because `@` is a reserved indicator in YAML and cannot
+      # open a plain scalar.
+      name: '@deepseek-ai/dsh-employee-marketplace'

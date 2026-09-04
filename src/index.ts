@@ -19,6 +19,9 @@ import type { Context } from '@deepseek-ai/cordis'
 // Empty type import carries the webServer Context merge.
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
+/** Plugin identity — matches the `id` in cordis.patch.yml. */
+export const name = 'ui-marketplace'
+
 /** Browser endpoint for skill installs (served by this plugin's node half). */
 export const INSTALL_SKILL_ENDPOINT = '/plugins/ui-marketplace/install-skill'
 
