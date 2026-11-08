@@ -1,13 +1,14 @@
-# @deepseek-ai/dsh-client-ui-marketplace
+# @deepseek-ai/dsh-employee-marketplace
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
-[![npm version](https://img.shields.io/npm/v/@deepseek-ai/dsh-client-ui-marketplace.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-client-ui-marketplace)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/@deepseek-ai/dsh-employee-marketplace.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-employee-marketplace)
+
+**English** | [中文](README.zh.md)
 
 A **Marketplace** panel for the DeepSeek Harness web client. It surfaces three
-catalogs — **Experts (专家)**, **Skills (技能)**, and **Connectors (连接器)** —
-sourced from the [skill.dualpaw.com](https://skill.dualpaw.com) registry, and
-lets you browse, favorite, summon (invoke), and publish directly from the chat
-UI. 
+catalogs — **Experts**, **Skills**, and **Connectors** — sourced from the
+[skill.dualpaw.com](https://skill.dualpaw.com) registry, and lets you browse,
+favorite, summon (invoke), and publish directly from the chat UI.
 
 The plugin is a self-contained Cordis plugin: it registers only the `locale`
 capability and DOM-injects its own sidebar entry and center-column panel. No
@@ -17,14 +18,14 @@ host gateway or slot changes are required.
 
 ## Overview
 
-The Marketplace plugin adds a new sidebar entry below 技能中心 (Skill Center).
+The Marketplace plugin adds a new sidebar entry below **Skill Center**.
 Toggling it takes over the center column with a three-tab panel:
 
 | Tab | What it shows |
 | --- | --- |
-| **Experts (专家)** | Category rail on the left, expert cards on the right. Hover a card to reveal the **召唤 (Invoke)** button. |
-| **Skills (技能)** | Searchable list of publishable skills, with a **发布技能 (Publish skill)** toolbar action. |
-| **Connectors (连接器)** | Connector catalog; each connector can pre-fill the composer and expose a per-connector toggle chip. |
+| **Experts** | Category rail on the left, expert cards on the right. Hover a card to reveal the **Summon** button. |
+| **Skills** | Searchable list of publishable skills, with a **Publish skill** toolbar action. |
+| **Connectors** | Connector catalog; each connector can pre-fill the composer and expose a per-connector toggle chip. |
 
 An invocation bridge listens for `dsh:invoke-expert` / `dsh:invoke-skill` /
 `dsh:connector-fill` window events emitted by the list/detail components. It
@@ -60,22 +61,22 @@ button. Favoriting is a no-op until a token is saved, so the UI stays honest
 about which actions will actually persist.
 
 ### 4. Publish a skill (gated on token)
-With a token saved, the Skills tab toolbar reveals a **发布技能 (Publish skill)**
+With a token saved, the Skills tab toolbar reveals a **Publish skill**
 button that opens `PublishSkillDialog`. Enter a name, description, and
 instructions, then submit — the plugin `POST`s to `/skills` on the registry and
 refreshes the skill list. Publishing without a token is blocked up front with a
 clear hint.
 
-### 5. Hover → 召唤 (Invoke) with auto-install + "已安装" tag
-Hovering an expert card reveals the **召唤 (Invoke)** button:
+### 5. Hover → Summon with auto-install + "Installed" tag
+Hovering an expert card reveals the **Summon** button:
 
 - The button prefix icon shows install state — **✓ Installed** / **⊘ Not installed**
   — and flips the moment you click.
-- Clicking 召唤 on a not-yet-installed expert first calls `installExpert`,
-  showing **下载中 (Downloading)** / **召唤中 (Summoning)** inside the same
+- Clicking Summon on a not-yet-installed expert first calls `installExpert`,
+  showing **Downloading** / **Summoning** inside the same
   button, then auto-downloads the expert's bundled skills atomically and
   dispatches the `dsh:invoke-expert` event so the composer takes over as usual.
-- Installed experts keep an **已安装 (Installed)** tag on the card.
+- Installed experts keep an **Installed** tag on the card.
 
 ---
 
@@ -100,12 +101,12 @@ Connector catalog with per-connector toggle switches:
 
 ![Connectors tab](docs/screenshots/marketplace-connectors-tab.png)
 
-### Hover → Invoke (composer pre-fill)
+### Hover → Summon (composer pre-fill)
 
-After clicking 召唤 (Invoke) on an expert card, the composer is pre-filled and
+After clicking **Summon** on an expert card, the composer is pre-filled and
 the expert chip is injected:
 
-![Invoke expert — composer pre-fill](docs/screenshots/expert-invoked-composer.png)
+![Summon expert — composer pre-fill](docs/screenshots/expert-invoked-composer.png)
 
 ### Expert quick picker
 
@@ -186,7 +187,7 @@ dsh web --port 8080
 # Your browser opens http://127.0.0.1:8080 automatically
 ```
 
-Toggle the **Marketplace (应用市场)** entry in the sidebar to open the panel.
+Toggle the **Marketplace** entry in the sidebar to open the panel.
 
 ---
 
@@ -258,9 +259,9 @@ dsh plugin --profile web remove @deepseek-ai/dsh-employee-marketplace
    - Follow the link to <https://skill.dualpaw.com/register> to get one.
 4. With a token saved:
    - **♥** favorite experts / skills.
-   - On the **Skills** tab, click **发布技能** to publish a new skill.
-5. Hover an expert card and click **召唤** to install (if needed) and invoke it.
-   Installed experts show an **已安装** tag.
+   - On the **Skills** tab, click **Publish skill** to publish a new skill.
+5. Hover an expert card and click **Summon** to install (if needed) and invoke it.
+   Installed experts show an **Installed** tag.
 
 ---
 
@@ -302,4 +303,4 @@ by a third party; your API token is stored only in your local browser. Use at
 your own risk and review the source before running it against any production
 environment.
 
-MIT License. See [LICENSE](../../LICENSE).
+MIT License. See [LICENSE](LICENSE).

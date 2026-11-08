@@ -1,7 +1,9 @@
-# @deepseek-ai/dsh-client-ui-marketplace
+# @deepseek-ai/dsh-employee-marketplace
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
-[![npm version](https://img.shields.io/npm/v/@deepseek-ai/dsh-client-ui-marketplace.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-client-ui-marketplace)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/@deepseek-ai/dsh-employee-marketplace.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-employee-marketplace)
+
+[English](README.md) | **中文**
 
 DeepSeek Harness Web 客户端的**应用市场**面板插件。它整合了三大目录 ——
 **专家（Experts）**、**技能（Skills）** 与 **连接器（Connectors）**，数据来源于
@@ -280,4 +282,4 @@ dsh-employee/
 `skill.dualpaw.com` 由第三方运营；你的 API Token 仅保存在本地浏览器中。
 请自行评估风险，并在任何生产环境运行前审阅源码。
 
-MIT 许可证。详见 [LICENSE](../../LICENSE)。
+MIT 许可证。详见 [LICENSE](LICENSE)。
