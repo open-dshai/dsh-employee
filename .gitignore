@@ -10,3 +10,4 @@ lib/
 
 # AI working-memory (project data, not source)
 .workbuddy/
+.DS_Store

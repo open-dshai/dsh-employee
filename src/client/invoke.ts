@@ -21,6 +21,7 @@
 import type { MarketplaceController } from './MarketplaceController.ts'
 import type { MarketplaceStore } from './store.ts'
 import { getConnectorConfigStatus } from './store.ts'
+import type { RecentExpert, RecentSkill } from './store.ts'
 import type { en } from './locales.ts'
 // CSS Modules hash every class name at build time (`dshConnectorAnchor` →
 // `N4Ngma_dshConnectorAnchor`). The anchor/popover are built with raw DOM
@@ -29,10 +30,22 @@ import type { en } from './locales.ts'
 // the `[data-open='true'] .dshConnectorPopover` visibility rule.
 import styles from './styles.module.css'
 
-const COMPOSER_SELECTOR = `[data-pane="conversation"] textarea, [class*="centerCol"] textarea, textarea[data-phase]`
+// The host composer may be a classic <textarea> or a contenteditable
+// <div> (the current dsh web build uses a contenteditable card). Match both.
+const COMPOSER_SELECTOR = `[data-pane="conversation"] textarea, [class*="centerCol"] textarea, textarea[data-phase], [data-pane="conversation"] [contenteditable="true"], [class*="centerCol"] [contenteditable="true"], [contenteditable="true"]`
 const BADGE_ATTR = 'data-dsh-invocation-badge'
 const CONNECTOR_ANCHOR_ATTR = 'data-dsh-connector-anchor'
 const CONNECTOR_POPOVER_ATTR = 'data-dsh-connector-popover'
+/** Attribute on the persistent summoned-expert chip in the composer action row. */
+const EXPERT_CHIP_ATTR = 'data-dsh-expert-chip'
+
+/** Hero toolbar row hosting the workspace / PTC controls (new-chat state
+ *  only — the host unmounts it inside an active conversation). */
+const HERO_ROW_SELECTOR = '[class*="heroWorkspaceRow"]'
+/** Right-aligned spacer at the end of the hero row; pickers go before it. */
+const HERO_OPTIONS_SELECTOR = '[class*="heroOptions"]'
+/** How many recently downloaded entries each hero picker shows. */
+const PICKER_RECENT_LIMIT = 5
 
 /** Localised helper — the bridge only needs a handful of strings. */
 type T = (key: keyof typeof en) => string
@@ -43,10 +56,19 @@ export interface InvocationTarget {
   readonly slug?: string | undefined
 }
 
-/** Find the conversation composer textarea, if mounted. */
-function findComposer(): HTMLTextAreaElement | undefined {
-  const ta = document.querySelector<HTMLTextAreaElement>(COMPOSER_SELECTOR)
-  return ta ?? undefined
+/** Find the conversation composer element (textarea or contenteditable). */
+function findComposer(): HTMLElement | undefined {
+  const el = document.querySelector<HTMLElement>(COMPOSER_SELECTOR)
+  return el ?? undefined
+}
+
+function isTextArea(el: HTMLElement): el is HTMLTextAreaElement {
+  return el.tagName === 'TEXTAREA'
+}
+
+/** Read the current composer value across both element kinds. */
+function getComposerValue(el: HTMLElement): string {
+  return isTextArea(el) ? el.value : (el.textContent ?? '')
 }
 
 /**
@@ -64,10 +86,62 @@ function setNativeValue(ta: HTMLTextAreaElement, value: string): void {
   ta.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
+/**
+ * Write into a contenteditable element. The dsh composer is a Lexical editor,
+ * which owns its own EditorState and rolls back bare DOM mutations
+ * (textContent assignments are reverted on the next reconciliation), so every
+ * change has to ride the editing events Lexical itself listens for:
+ *  - insert: select-all + execCommand('insertText') replaces the content and
+ *    fires the beforeinput/input pair Lexical tracks. A follow-up manual
+ *    textContent write MUST NOT be added: Lexical reconciles asynchronously,
+ *    so a synchronous consistency check misreads the not-yet-updated DOM as
+ *    a failure and double-writes the prefix.
+ *  - clear: with the whole content selected, dispatch the same
+ *    beforeinput/input pair a real cut fires (deleteByCut). No textContent
+ *    assignment either — it is the mutation Lexical rolls back, which used
+ *    to leave the old prefix in place.
+ */
+function setEditableValue(el: HTMLElement, value: string): void {
+  el.focus()
+  const selectAll = (): void => {
+    const selection = window.getSelection()
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+  }
+  const clearSelection = (): void => {
+    el.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'deleteByCut' }))
+    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteByCut' }))
+  }
+  selectAll()
+  if (value.length === 0) {
+    clearSelection()
+    return
+  }
+  // When the editor already holds text, a second execCommand('insertText')
+  // right after the first write is silently dropped: Lexical's internal
+  // selection has not caught up with the DOM selection yet, so the native
+  // replace never reaches its state. Clearing through the event pair first
+  // resets Lexical's state, then re-selecting and inserting lands reliably
+  // (verified across repeated skill -> connector fill sequences).
+  if ((el.textContent ?? '').length > 0) {
+    clearSelection()
+    selectAll()
+  }
+  document.execCommand('insertText', false, value)
+}
+
+/** Unified setter for either composer element kind. */
+function setComposerValue(el: HTMLElement, value: string): void {
+  if (isTextArea(el)) setNativeValue(el, value)
+  else setEditableValue(el, value)
+}
+
 /** Run `fn` against the composer once it is available (immediate or ASAP). */
-function runWhenComposer(fn: (ta: HTMLTextAreaElement) => void): void {
-  const ta = findComposer()
-  if (ta !== undefined) { fn(ta); return }
+function runWhenComposer(fn: (el: HTMLElement) => void): void {
+  const el = findComposer()
+  if (el !== undefined) { fn(el); return }
   const obs = new MutationObserver(() => {
     const found = findComposer()
     if (found !== undefined) {
@@ -109,6 +183,16 @@ export class InvocationBridge {
   private anchorSizeObserver: ResizeObserver | undefined
   private anchorDomObserver: MutationObserver | undefined
   private storeUnsubscribe: (() => void) | undefined
+  /** The currently summoned expert (drives the persistent composer chip). */
+  private activeExpert: { name: string; slug: string; avatarUrl: string } | undefined
+  /** Persistent chip rendered next to the composer's view-mode control. */
+  private expertChip: HTMLDivElement | undefined
+  /** Host node with the two hero-toolbar quick pickers (专家 / 技能). */
+  private pickerHost: HTMLDivElement | undefined
+  /** Which picker popover is currently open (only one at a time). */
+  private openPicker: 'experts' | 'skills' | undefined
+  /** Capture-phase document click handler that closes the open popover. */
+  private pickerDocClick: ((e: MouseEvent) => void) | undefined
 
   constructor(panel: MarketplaceController, store: MarketplaceStore, t: T) {
     this.panel = panel
@@ -127,14 +211,26 @@ export class InvocationBridge {
     this.storeUnsubscribe = this.store.store.subscribe(() => {
       this.refreshAnchorConnectedDot()
       if (this.anchor?.dataset.open === 'true') this.renderConnectorPopover()
+      // Keep an open hero picker in sync when an install/uninstall lands
+      // while the panel is open (the panel shares the same store).
+      if (this.openPicker !== undefined) this.refreshOpenPicker()
     })
     void this.ensureConnectorsLoaded()
+    void this.ensureCatalogLoaded()
   }
 
   /** Kick a connector catalog load if nothing has fetched it yet. */
   private async ensureConnectorsLoaded(): Promise<void> {
     const status = this.store.store.getSnapshot().connectors.status
     if (status === 'idle') await this.store.loadConnectors()
+  }
+
+  /** Preload the expert/skill catalogs so the hero picker can backfill
+   *  installed entries that predate the recent-list storage. */
+  private async ensureCatalogLoaded(): Promise<void> {
+    const snap = this.store.store.getSnapshot()
+    if (snap.experts.status === 'idle') void this.store.loadExperts()
+    if (snap.skills.status === 'idle') void this.store.loadSkills()
   }
 
   /** Enable/disable toggles are persisted by the store; keep the chip in sync. */
@@ -147,17 +243,32 @@ export class InvocationBridge {
 
   private readonly onExpert = (event: Event): void => {
     const detail = (event as CustomEvent).detail as
-      | { id?: number; name?: string; slug?: string; intro?: string }
+      | { id?: number; name?: string; slug?: string; intro?: string; avatarUrl?: string }
       | undefined
     const name = detail?.name ?? '专家'
     const slug = detail?.slug ?? ''
+    const avatarUrl = typeof detail?.avatarUrl === 'string' ? detail.avatarUrl : ''
+    // Refresh the hero picker's recent list even for experts that were
+    // installed before the recent-list feature shipped (their summon skips
+    // installExpert, so the list would otherwise stay empty forever).
+    if (typeof detail?.id === 'number') {
+      this.store.touchRecentExpert({ id: detail.id, name, slug, avatarUrl })
+    }
     // 1. Hand the center column back to the conversation.
     this.panel.closePanel()
-    // 2. Prefill the composer with a role-play directive.
-    const prefix = `召唤专家「${name}」：`
+    // 2. Prefill the composer with a role-play directive — this prefix is
+    //    what makes the next send actually invoke the expert.
+    const prefix = this.expertPrefix(name)
     this.runWhenComposerReady(prefix)
-    // 3. Show the badge.
-    this.showBadge({ kind: 'expert', name, slug })
+    // 3. Persist + render the chip in the composer action row. It stays
+    //    (unlike the old 30s badge) until the user dismisses it.
+    this.activeExpert = { name, slug, avatarUrl }
+    runWhenComposer(() => this.mountExpertChip())
+  }
+
+  /** Build the role-play directive prefixed into the composer. */
+  private expertPrefix(name: string): string {
+    return `召唤专家「${name}」：`
   }
 
   // ── Skill invocation ──────────────────────────────────────────────
@@ -168,6 +279,7 @@ export class InvocationBridge {
       | undefined
     const slug = detail?.slug ?? ''
     const name = detail?.displayName ?? slug ?? '技能'
+    if (slug.length > 0) this.store.touchRecentSkill({ slug, displayName: name })
     this.panel.closePanel()
     const prefix = slug.length > 0 ? `/${slug} ` : ''
     this.runWhenComposerReady(prefix)
@@ -207,12 +319,14 @@ export class InvocationBridge {
 
   /** Focus the composer textarea and prefill the routing prefix. */
   private runWhenComposerReady(prefix: string): void {
-    runWhenComposer((ta) => {
-      if (prefix.length > 0) {
-        setNativeValue(ta, prefix)
-        try { ta.setSelectionRange(prefix.length, prefix.length) } catch { /* not all inputs support selection */ }
+    runWhenComposer((el) => {
+      if (prefix.length > 0 && getComposerValue(el) !== prefix) {
+        setComposerValue(el, prefix)
+        if (isTextArea(el)) {
+          try { el.setSelectionRange(prefix.length, prefix.length) } catch { /* not all inputs support selection */ }
+        }
       }
-      ta.focus()
+      el.focus()
     })
   }
 
@@ -413,6 +527,7 @@ export class InvocationBridge {
       const ta = findComposer()
       if (ta !== undefined) {
         this.mountConnectorAnchor()
+        this.mountHeroPickers()
         return
       }
     }
@@ -428,6 +543,15 @@ export class InvocationBridge {
     this.anchorDomObserver = new MutationObserver(() => {
       if (this.anchor === undefined || !document.body.contains(this.anchor)) {
         if (findComposer() !== undefined) this.mountConnectorAnchor()
+      }
+      if (this.activeExpert !== undefined
+        && (this.expertChip === undefined || !document.body.contains(this.expertChip))) {
+        if (findComposer() !== undefined) this.mountExpertChip()
+      }
+      // The hero row exists only on the new-chat screen; mounting bails
+      // quietly in conversation state and re-runs when a new chat opens.
+      if (this.pickerHost === undefined || !document.body.contains(this.pickerHost)) {
+        this.mountHeroPickers()
       }
     })
     this.anchorDomObserver.observe(document.body, { childList: true, subtree: true })
@@ -551,6 +675,342 @@ export class InvocationBridge {
     this.anchorSizeObserver = undefined
     window.removeEventListener('scroll', this.onAnchorViewportChange, true)
     window.removeEventListener('resize', this.onAnchorViewportChange)
+  }
+
+  // ── Summoned-expert chip (persistent, inside the composer action row) ──
+  //
+  // Mirrors the connector anchor's survival strategy: a real-flow node in
+  // the host's own bottom action row, re-injected by anchorDomObserver
+  // whenever the host re-creates the conversation pane.
+
+  /**
+   * Find the permission-mode control in the composer's bottom action row.
+   * The current host renders it as a `[class*="modes"]` div labelled
+   * 工作区内修改; older builds used a 仅可查看 / 允许完全访问 button.
+   * The expert chip is inserted immediately after this element.
+   */
+  private locateViewModeControl(row: HTMLElement): HTMLElement | undefined {
+    // Primary path: the host's hashed class keeps the stable `modes` stem.
+    const byClass = row.querySelector<HTMLElement>('[class*="modes"]')
+    if (byClass !== null) return byClass
+    // Text fallback for hosts without that class. Iterating in document
+    // order and keeping the LAST match prefers the deepest, most specific
+    // element over a wrapper that only contains the label text.
+    let best: HTMLElement | undefined
+    const candidates = row.querySelectorAll('button, [role="button"], div, span')
+    for (const el of Array.from(candidates)) {
+      const text = (el.textContent ?? '').replace(/\s+/g, '')
+      if (text.includes('工作区') || text.includes('修改') || text.includes('查看') || text.includes('访问') || /read|write/i.test(text)) {
+        best = el as HTMLElement
+      }
+    }
+    return best
+  }
+
+  private mountExpertChip(): void {
+    const expert = this.activeExpert
+    if (expert === undefined) return
+    this.unmountExpertChip()
+    const ta = findComposer()
+    if (ta === undefined) return
+    const card = this.locateComposerCard(ta)
+    const row = card !== undefined ? this.locateButtonRow(card, ta) : undefined
+    if (row === undefined) return
+
+    const chip = document.createElement('div')
+    chip.setAttribute(EXPERT_CHIP_ATTR, '')
+    chip.className = styles.dshExpertChip ?? 'dshExpertChip'
+
+    const avatar = document.createElement('span')
+    avatar.className = styles.dshExpertChipAvatar ?? 'dshExpertChipAvatar'
+    if (expert.avatarUrl.length > 0) {
+      const img = document.createElement('img')
+      img.src = expert.avatarUrl
+      img.alt = ''
+      img.addEventListener('error', () => { img.remove() ; avatar.textContent = avatarFallback(expert.name) })
+      avatar.appendChild(img)
+    } else {
+      avatar.textContent = avatarFallback(expert.name)
+    }
+    chip.appendChild(avatar)
+
+    const nameEl = document.createElement('span')
+    nameEl.className = styles.dshExpertChipName ?? 'dshExpertChipName'
+    nameEl.textContent = expert.name
+    chip.appendChild(nameEl)
+
+    const close = document.createElement('button')
+    close.type = 'button'
+    close.className = styles.dshExpertChipClose ?? 'dshExpertChipClose'
+    close.setAttribute('aria-label', this.t('close'))
+    close.textContent = '×'
+    close.addEventListener('click', (event) => {
+      event.stopPropagation()
+      this.dismissExpertChip()
+    })
+    chip.appendChild(close)
+
+    // Insert immediately after the permission-mode control (工作区内修改 /
+    // 仅可查看). It sits inside the row's left "tools" container rather
+    // than being a direct child of the row, so insert relative to the
+    // element itself instead of climbing to a row-level wrapper.
+    const modeEl = this.locateViewModeControl(row)
+    if (modeEl !== undefined && modeEl.parentElement !== null) {
+      modeEl.parentElement.insertBefore(chip, modeEl.nextSibling)
+    } else {
+      row.insertBefore(chip, row.firstChild)
+    }
+    this.expertChip = chip
+  }
+
+  /** Remove the chip and strip the expert prefix from the composer. */
+  private dismissExpertChip(): void {
+    const expert = this.activeExpert
+    this.unmountExpertChip()
+    this.activeExpert = undefined
+    if (expert !== undefined) {
+      const el = findComposer()
+      if (el !== undefined) {
+        const prefix = this.expertPrefix(expert.name)
+        const current = getComposerValue(el)
+        if (current.startsWith(prefix)) setComposerValue(el, current.slice(prefix.length))
+      }
+    }
+  }
+
+  private unmountExpertChip(): void {
+    this.expertChip?.remove()
+    this.expertChip = undefined
+  }
+
+  // ── Hero toolbar quick pickers (最近下载的专家 / 技能) ────────────────
+  //
+  // Two dropdown chips appended to the host's hero workspace row (the row
+  // with the workspace and PTC controls), immediately after PTC. Each
+  // lists up to PICKER_RECENT_LIMIT recently downloaded entries from the
+  // store; clicking an item reuses the existing dsh:invoke-* event chain.
+  // Pure DOM, like the connector anchor — the observer re-injects the
+  // nodes whenever the host rebuilds the new-chat screen.
+
+  private mountHeroPickers(): void {
+    if (this.pickerHost !== undefined && document.body.contains(this.pickerHost)) return
+    this.unmountHeroPickers()
+    const row = document.querySelector<HTMLElement>(HERO_ROW_SELECTOR)
+    if (row === null) return
+    const host = document.createElement('div')
+    host.setAttribute('data-dsh-picker-host', '')
+    host.className = styles.dshPickerHost ?? 'dshPickerHost'
+    host.appendChild(this.buildPicker('experts'))
+    host.appendChild(this.buildPicker('skills'))
+    // The row ends with a right-aligned spacer (heroOptions, large
+    // margin-left). Insert before it so the pickers sit right after PTC;
+    // append only when the spacer is absent.
+    const spacer = row.querySelector(HERO_OPTIONS_SELECTOR)
+    if (spacer !== null) row.insertBefore(host, spacer)
+    else row.appendChild(host)
+    this.pickerHost = host
+
+    this.pickerDocClick = (e: MouseEvent): void => {
+      if (this.openPicker === undefined) return
+      const tgt = e.target as Node | null
+      if (tgt !== null && host.contains(tgt)) return
+      this.closePickers()
+    }
+    document.addEventListener('click', this.pickerDocClick, true)
+  }
+
+  private unmountHeroPickers(): void {
+    if (this.pickerDocClick !== undefined) {
+      document.removeEventListener('click', this.pickerDocClick, true)
+      this.pickerDocClick = undefined
+    }
+    this.pickerHost?.remove()
+    this.pickerHost = undefined
+    this.openPicker = undefined
+  }
+
+  /** Build one trigger button + its (hidden until opened) popover. */
+  private buildPicker(kind: 'experts' | 'skills'): HTMLDivElement {
+    const wrap = document.createElement('div')
+    wrap.className = styles.dshPicker ?? 'dshPicker'
+    wrap.setAttribute('data-dsh-picker', kind)
+
+    const trigger = document.createElement('button')
+    trigger.type = 'button'
+    trigger.className = styles.dshPickerTrigger ?? 'dshPickerTrigger'
+    trigger.setAttribute('data-dsh-picker-trigger', kind)
+    trigger.dataset.open = 'false'
+    const icon = document.createElement('span')
+    icon.className = styles.dshPickerIcon ?? 'dshPickerIcon'
+    icon.textContent = kind === 'experts' ? '🎯' : '🧩'
+    const label = document.createElement('span')
+    label.className = styles.dshPickerLabel ?? 'dshPickerLabel'
+    label.textContent = kind === 'experts' ? this.t('pickerExperts') : this.t('pickerSkills')
+    const caret = document.createElement('span')
+    caret.className = styles.dshPickerCaret ?? 'dshPickerCaret'
+    caret.textContent = '▾'
+    trigger.append(icon, label, caret)
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation()
+      this.togglePicker(kind)
+    })
+
+    const popover = document.createElement('div')
+    popover.className = styles.dshPickerPopover ?? 'dshPickerPopover'
+    popover.setAttribute('data-dsh-picker-popover', kind)
+    popover.dataset.open = 'false'
+    popover.addEventListener('click', (event) => event.stopPropagation())
+
+    wrap.append(trigger, popover)
+    return wrap
+  }
+
+  /** Open the requested picker (closing the other), or close if already open. */
+  private togglePicker(kind: 'experts' | 'skills'): void {
+    if (this.pickerHost === undefined) return
+    if (this.openPicker === kind) {
+      this.closePickers()
+      return
+    }
+    this.closePickers()
+    const trigger = this.pickerHost.querySelector<HTMLElement>(`[data-dsh-picker-trigger="${kind}"]`)
+    const popover = this.pickerHost.querySelector<HTMLElement>(`[data-dsh-picker-popover="${kind}"]`)
+    if (trigger === null || popover === null) return
+    this.renderPickerPopover(kind, popover)
+    trigger.dataset.open = 'true'
+    popover.dataset.open = 'true'
+    this.openPicker = kind
+  }
+
+  private closePickers(): void {
+    if (this.pickerHost !== undefined) {
+      this.pickerHost
+        .querySelectorAll<HTMLElement>('[data-dsh-picker-trigger], [data-dsh-picker-popover]')
+        .forEach((el) => { el.dataset.open = 'false' })
+    }
+    this.openPicker = undefined
+  }
+
+  /** Re-render the currently open popover after a store snapshot change. */
+  private refreshOpenPicker(): void {
+    if (this.openPicker === undefined || this.pickerHost === undefined) return
+    const popover = this.pickerHost.querySelector<HTMLElement>(`[data-dsh-picker-popover="${this.openPicker}"]`)
+    if (popover !== null) this.renderPickerPopover(this.openPicker, popover)
+  }
+
+  /** Fill a picker popover with the five most recent downloaded entries. */
+  private renderPickerPopover(kind: 'experts' | 'skills', popover: HTMLElement): void {
+    popover.innerHTML = ''
+    const snap = this.store.store.getSnapshot()
+    const list = document.createElement('div')
+    list.className = styles.dshPickerList ?? 'dshPickerList'
+    if (kind === 'experts') {
+      // Intersect with the install set so a stale storage entry can never
+      // surface an expert that is no longer downloaded.
+      const recent = snap.recentExperts.filter((r) => snap.install.installedExperts.has(r.id))
+      // Backfill: experts installed before the recent-list storage existed
+      // have no recent entry. Pull their name/avatar from the catalog so
+      // the picker still lists every downloaded expert.
+      const knownIds = new Set(recent.map((r) => r.id))
+      const backfill: RecentExpert[] = snap.experts.items
+        .filter((r) => snap.install.installedExperts.has(r.id) && !knownIds.has(r.id))
+        .map((r) => ({ id: r.id, name: r.name, slug: r.slug, avatarUrl: r.avatarUrl, ts: 0 }))
+      const items = [...recent, ...backfill].slice(0, PICKER_RECENT_LIMIT)
+      if (items.length === 0) {
+        list.appendChild(this.buildPickerEmpty(this.t('pickerExpertEmpty')))
+      } else {
+        for (const row of items) list.appendChild(this.buildExpertPickerItem(row))
+      }
+    } else {
+      const recent = snap.recentSkills.filter((r) => snap.install.installedSkills.has(r.slug))
+      const knownSlugs = new Set(recent.map((r) => r.slug))
+      const backfill: RecentSkill[] = snap.skills.items
+        .filter((r) => snap.install.installedSkills.has(r.slug) && !knownSlugs.has(r.slug))
+        .map((r) => ({ slug: r.slug, displayName: r.displayName, ts: 0 }))
+      const items = [...recent, ...backfill].slice(0, PICKER_RECENT_LIMIT)
+      if (items.length === 0) {
+        list.appendChild(this.buildPickerEmpty(this.t('pickerSkillEmpty')))
+      } else {
+        for (const row of items) list.appendChild(this.buildSkillPickerItem(row))
+      }
+    }
+    popover.appendChild(list)
+
+    const more = document.createElement('div')
+    more.className = styles.dshPickerMore ?? 'dshPickerMore'
+    more.textContent = kind === 'experts' ? this.t('pickerMoreExperts') : this.t('pickerMoreSkills')
+    more.addEventListener('click', (event) => {
+      event.stopPropagation()
+      this.closePickers()
+      if (typeof this.panel.openPanel === 'function') this.panel.openPanel(kind)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dsh:marketplace-set-tab', { detail: { tab: kind } }))
+      }
+    })
+    popover.appendChild(more)
+  }
+
+  private buildPickerEmpty(text: string): HTMLElement {
+    const empty = document.createElement('div')
+    empty.className = styles.dshPickerEmpty ?? 'dshPickerEmpty'
+    empty.textContent = text
+    return empty
+  }
+
+  private buildExpertPickerItem(row: RecentExpert): HTMLElement {
+    const item = document.createElement('div')
+    item.className = styles.dshPickerItem ?? 'dshPickerItem'
+    const avatar = document.createElement('span')
+    avatar.className = styles.dshPickerAvatar ?? 'dshPickerAvatar'
+    if (row.avatarUrl.length > 0) {
+      const img = document.createElement('img')
+      img.src = row.avatarUrl
+      img.alt = ''
+      img.loading = 'lazy'
+      img.addEventListener('error', () => { img.remove(); avatar.textContent = avatarFallback(row.name) })
+      avatar.appendChild(img)
+    } else {
+      avatar.textContent = avatarFallback(row.name)
+    }
+    const name = document.createElement('span')
+    name.className = styles.dshPickerName ?? 'dshPickerName'
+    name.textContent = row.name
+    item.append(avatar, name)
+    item.addEventListener('click', (event) => {
+      event.stopPropagation()
+      this.closePickers()
+      if (typeof window !== 'undefined') {
+        // Reuse the exact event chain the marketplace 召唤 button fires:
+        // InvocationBridge.onExpert prefills the composer and mounts the chip.
+        window.dispatchEvent(new CustomEvent('dsh:invoke-expert', {
+          detail: { id: row.id, name: row.name, slug: row.slug, avatarUrl: row.avatarUrl },
+        }))
+      }
+    })
+    return item
+  }
+
+  private buildSkillPickerItem(row: RecentSkill): HTMLElement {
+    const item = document.createElement('div')
+    item.className = styles.dshPickerItem ?? 'dshPickerItem'
+    const avatar = document.createElement('span')
+    avatar.className = `${styles.dshPickerAvatar ?? 'dshPickerAvatar'} ${styles.dshPickerAvatarSkill ?? 'dshPickerAvatarSkill'}`
+    avatar.textContent = avatarFallback(row.displayName)
+    const name = document.createElement('span')
+    name.className = styles.dshPickerName ?? 'dshPickerName'
+    name.textContent = row.displayName
+    item.append(avatar, name)
+    item.addEventListener('click', (event) => {
+      event.stopPropagation()
+      this.closePickers()
+      if (typeof window !== 'undefined') {
+        // InvocationBridge.onSkill turns this into the `/<slug> ` prefix.
+        window.dispatchEvent(new CustomEvent('dsh:invoke-skill', {
+          detail: { slug: row.slug, displayName: row.displayName },
+        }))
+      }
+    })
+    return item
   }
 
   private anchorRepositionFrame: number | undefined
@@ -712,6 +1172,9 @@ export class InvocationBridge {
     this.anchorDomObserver?.disconnect()
     this.anchorDomObserver = undefined
     this.unmountConnectorAnchor()
+    this.unmountExpertChip()
+    this.unmountHeroPickers()
+    this.activeExpert = undefined
     this.clearBadge()
   }
 }

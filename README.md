@@ -81,18 +81,38 @@ Hovering an expert card reveals the **召唤 (Invoke)** button:
 
 ## Screenshots
 
-> Screenshots to be added. Suggested captures:
->
-> - ![Experts](docs/screenshots/marketplace-panel.png) 
-   — Experts.
-> - ![Experts](docs/screenshots/expert-invoked.png) 
-   — expert card hover with 召唤 button.
-> - ![Skills](docs/screenshots/skills-tab.png) 
-   — ⚙ skills 
-> - ![Connectors](docs/screenshots/connectors-tab.png) 
-   — connectors.
+### Experts tab
 
-<!-- ![Marketplace panel](docs/screenshots/marketplace-panel.png) -->
+Category rail on the left, expert card grid on the right — installed / not-installed
+states at a glance:
+
+![Experts tab](docs/screenshots/marketplace-experts-tab.png)
+
+### Skills tab
+
+Searchable skill list with one-click "Try it" action:
+
+![Skills tab](docs/screenshots/marketplace-skills-tab.png)
+
+### Connectors tab
+
+Connector catalog with per-connector toggle switches:
+
+![Connectors tab](docs/screenshots/marketplace-connectors-tab.png)
+
+### Hover → Invoke (composer pre-fill)
+
+After clicking 召唤 (Invoke) on an expert card, the composer is pre-filled and
+the expert chip is injected:
+
+![Invoke expert — composer pre-fill](docs/screenshots/expert-invoked-composer.png)
+
+### Expert quick picker
+
+The expert drop-down next to the composer lets you quickly switch between
+installed experts:
+
+![Expert quick picker](docs/screenshots/expert-quick-picker.png)
 
 ---
 
@@ -101,7 +121,7 @@ Hovering an expert card reveals the **召唤 (Invoke)** button:
 | Requirement | Version |
 | --- | --- |
 | Node.js | `^22.19 \|\| >=24` |
-| Package manager | `pnpm` (workspace repo) |
+| Package manager | `pnpm` |
 | React | `^18.2.0` (peer) |
 | DeepSeek API key | Optional — only for running the host harness with live agents |
 
@@ -109,40 +129,123 @@ The plugin itself is pure front-end; it talks to `skill.dualpaw.com` through
 its own CORS relay in `src/client/api.ts`, which falls back to mock data when
 the registry is unreachable. No build-time secrets are required.
 
-This package lives inside the DeepSeek Harness monorepo
-(`packages/client/ui-marketplace`) and is built with the repo's shared
-`tsdown` pipeline.
+This package is a standalone repository built with `tsdown` — no monorepo
+dependency.
 
 ---
 
 ## Installation
 
-### As a workspace package (development)
+### 1. Prerequisites
 
-From the repository root:
+| Requirement | Version | Notes |
+| --- | --- | --- |
+| Node.js | `^22.19 \|\| >=24` | Runtime for the dsh CLI |
+| pnpm | `>=9` | Package manager used by dsh |
+| dsh CLI | latest | DeepSeek Harness CLI (install below on first use) |
+| React | `^18.2.0` (peer) | Provided by the dsh host — no separate install needed |
+
+**Install the dsh CLI** (if you don't have it yet):
 
 ```sh
-pnpm install
-pnpm --filter @deepseek-ai/dsh-client-ui-marketplace bundle
+# Install pnpm (skip if already installed)
+npm install -g pnpm
+
+# Set up pnpm's global bin directory (one-time)
+pnpm setup
+source ~/.zshrc
+
+# Install dsh CLI
+pnpm add -g @deepseek-ai/dsh
+
+# Verify
+dsh --version
 ```
 
-`bundle` (via `tsdown`) compiles `src/` into the runtime bundles:
+> If you see `ERR_PNPM_NO_GLOBAL_BIN_DIR`, run `pnpm setup` followed by
+> `source ~/.zshrc` and retry.
 
-- `lib/index.js` — ESM entry (used by the host).
-- `lib/client.js` — the browser half loaded by `dsh web`.
+---
+
+### 2. Install the plugin into dsh web (end users)
+
+Install the latest plugin version into the `web` profile directly from npm or GitHub:
+
+```sh
+# Install from GitHub (recommended, stays in sync with this repo)
+dsh plugin --profile web add github:open-dshai/dsh-employee
+
+# Or install from npm
+# dsh plugin --profile web add @deepseek-ai/dsh-employee-marketplace
+```
+
+Then start dsh web:
+
+```sh
+dsh web --port 8080
+# Your browser opens http://127.0.0.1:8080 automatically
+```
+
+Toggle the **Marketplace (应用市场)** entry in the sidebar to open the panel.
+
+---
+
+### 3. Install from local source (developers)
+
+If you want to hack on the plugin and test changes live:
+
+#### 3.1 Clone and install dependencies
+
+```sh
+git clone https://github.com/open-dshai/dsh-employee.git
+cd dsh-employee
+pnpm install
+```
+
+#### 3.2 Build the bundles
+
+```sh
+pnpm bundle
+```
+
+This produces:
+
+- `lib/index.js` — Node-side entry (loaded by the host).
+- `lib/client.js` — Browser-side bundle (loaded by `dsh web`).
 
 > ⚠️ The running web client loads the **compiled `lib/client.js`**, not `src/`.
-> After editing `src/`, you must re-run the `bundle` script above (and restart
-> `dsh web`) for changes to appear.
+> After editing `src/`, re-run `pnpm bundle` (and restart `dsh web`) for changes
+> to appear. During development you can use `pnpm watch` for automatic rebuilds.
 
-### Run the host web client
+#### 3.3 Link the local directory into the dsh web profile
+
+Use `dsh plugin add` to link your local source directory into the web profile (recommended):
 
 ```sh
-pnpm dsh web --port 8080
-# open http://127.0.0.1:8080
+dsh plugin --profile web add /absolute/path/to/dsh-employee
 ```
 
-Toggle the **Marketplace** entry in the sidebar to open the panel.
+Replace `/absolute/path/to/dsh-employee` with the absolute path to your cloned
+source directory.
+
+> ⚠️ If you see `ERR_PNPM_UNEXPECTED_STORE` or `ERR_PNPM_INVALID_VERSION_UNION`,
+> your global pnpm is too old. Run `pnpm add -g pnpm@latest` to upgrade, then retry.
+
+Then restart dsh web:
+
+```sh
+dsh web --port 8080
+```
+
+From then on, the cycle is: edit source → `pnpm bundle` → refresh the browser.
+
+---
+
+### 4. Uninstall
+
+```sh
+dsh plugin --profile web remove @deepseek-ai/dsh-employee-marketplace
+```
 
 ---
 
@@ -164,23 +267,28 @@ Toggle the **Marketplace** entry in the sidebar to open the panel.
 ## Project layout
 
 ```
-packages/client/ui-marketplace/
-├── src/client/
-│   ├── index.ts                    # plugin entry (apply + locale registration)
-│   ├── store.ts                    # MarketplaceStore (catalogs, install, favorite, publish)
-│   ├── api.ts                      # CORS relay to skill.dualpaw.com + mock fallback
-│   ├── MarketplaceController.ts    # panel open/close + single-occupant coordination
-│   ├── MarketplacePanel.tsx        # the three-tab center panel
-│   ├── ExpertsTab.tsx              # experts grid + hover 召唤 + favorite
-│   ├── SkillsTab.tsx               # skills list + publish toolbar action
-│   ├── ConnectorsTab.tsx           # connector catalog + composer chip
-│   ├── MarketplaceSettingsDialog.tsx  # ⚙ Parameters (token + register link)
-│   ├── PublishSkillDialog.tsx      # publish-skill dialog (token-gated)
-│   ├── invoke.ts                   # invocation bridge (dsh:invoke-* events)
-│   ├── locales.ts                  # en / zh i18n dictionaries
-│   └── styles.module.css           # CSS modules
+dsh-employee/
+├── src/
+│   ├── index.ts                    # Node entry (install/uninstall skill routes)
+│   └── client/
+│       ├── index.ts                # Browser plugin entry (apply + inject)
+│       ├── store.ts                # MarketplaceStore (catalogs, install, favorite, publish)
+│       ├── api.ts                  # CORS relay to skill.dualpaw.com + mock fallback
+│       ├── MarketplaceController.ts # panel open/close + single-occupant coordination
+│       ├── MarketplacePanel.tsx    # the three-tab center panel
+│       ├── ExpertsTab.tsx          # experts grid + hover invoke + favorite
+│       ├── SkillsTab.tsx           # skills list + publish/try-it actions
+│       ├── ConnectorsTab.tsx       # connector catalog + composer chip
+│       ├── MarketplaceSettingsDialog.tsx # ⚙ Parameters (token + register link)
+│       ├── PublishSkillDialog.tsx  # publish-skill dialog (token-gated)
+│       ├── invoke.ts               # invocation bridge (dsh:invoke-* events)
+│       ├── locales.ts              # en / zh i18n dictionaries
+│       └── styles.module.css       # CSS modules
 ├── lib/                            # build output (tsdown) — do not edit by hand
-├── tsdown.config.ts
+├── tsdown.config.ts                # tsdown config (dual entry)
+├── tsdown.css-plugin.ts            # CSS Modules inline plugin
+├── tsdown.client-plugin.ts         # __ModuleLoader__ wrapper plugin
+├── .npmrc                          # npm registry config
 └── package.json
 ```
 

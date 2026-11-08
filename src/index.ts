@@ -31,6 +31,25 @@ export const UNINSTALL_SKILL_ENDPOINT = '/plugins/ui-marketplace/uninstall-skill
 /** Root directory every marketplace skill installs into. */
 export const SKILLS_ROOT = join(homedir(), '.agents', 'skills')
 
+/**
+ * Prefix route of the same-origin reverse proxy. The upstream
+ * (skill.dualpaw.com) sends no CORS headers, so a browser fetch is blocked;
+ * this node-half route relays the call loopback-side instead. The client
+ * keeps its public-CORS-proxy rotation as a secondary fallback for hosts
+ * without the node route (e.g. Electron file://).
+ */
+export const UPSTREAM_PROXY_ENDPOINT = '/plugins/ui-marketplace/upstream'
+
+/** Upstream API origin + versioned base. Only this origin may be proxied. */
+const UPSTREAM_ORIGIN = 'https://skill.dualpaw.com'
+const UPSTREAM_API_BASE = UPSTREAM_ORIGIN + '/api/v1'
+/** HTTP methods allowed through the proxy — writes stay limited to POST. */
+const PROXY_ALLOWED_METHODS = new Set(['GET', 'POST', 'HEAD', 'OPTIONS'])
+/** Request headers safe to relay; host/connection/cookie etc. are dropped. */
+const PROXY_RELAY_HEADERS = new Set(['accept', 'authorization', 'content-type'])
+/** Hard timeout for one upstream relay so a hung upstream cannot pin the route. */
+const PROXY_TIMEOUT_MS = 20000
+
 /** POST body the client store sends for one skill install. */
 export interface InstallSkillRequest {
   slug: string
@@ -110,9 +129,15 @@ export function apply(ctx: Context): void {
           path: UNINSTALL_SKILL_ENDPOINT,
           handler: makeUninstallHandler(httpCtx),
         })
+        const proxyDisposer = httpCtx.webServer.register({
+          kind: 'prefix',
+          path: UPSTREAM_PROXY_ENDPOINT,
+          handler: makeUpstreamProxyHandler(httpCtx),
+        })
         return () => {
           installDisposer?.()
           uninstallDisposer?.()
+          proxyDisposer?.()
         }
       },
       'ui-marketplace: skill install/uninstall routes',
@@ -177,6 +202,64 @@ function makeUninstallHandler(httpCtx: Context): (req: IncomingMessage, res: Ser
     } catch (error) {
       httpCtx.logger.warn(error instanceof Error ? error : new Error(String(error)))
       sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+    }
+  }
+}
+
+/**
+ * Same-origin reverse proxy handler. Takes the URL suffix after
+ * {@link UPSTREAM_PROXY_ENDPOINT} (e.g. '/strategist?page=0&size=24') and
+ * relays it to the upstream '/api/v1' base, streaming the JSON response back.
+ * Loopback-only by construction (the webServer binds 127.0.0.1) and locked to
+ * a single origin + the /api/v1/ path, so it cannot become an open proxy.
+ */
+function makeUpstreamProxyHandler(httpCtx: Context): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
+  return async (req, res) => {
+    try {
+      const method = req.method ?? 'GET'
+      if (!PROXY_ALLOWED_METHODS.has(method)) {
+        sendJson(res, 405, { error: 'method not allowed' })
+        return
+      }
+      if (method === 'OPTIONS') {
+        res.writeHead(204, { 'access-control-allow-origin': '*' })
+        res.end()
+        return
+      }
+      // req.url keeps the full pathname + query even on a prefix match.
+      const rest = (req.url ?? '/').slice(UPSTREAM_PROXY_ENDPOINT.length) || '/'
+      const target = new URL(UPSTREAM_API_BASE + rest)
+      // Defence in depth: reject path traversal or any origin/path escape.
+      if (target.origin !== UPSTREAM_ORIGIN || !target.pathname.startsWith('/api/v1/')) {
+        sendJson(res, 403, { error: 'upstream path rejected' })
+        return
+      }
+      const headers = new Headers()
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value !== undefined && PROXY_RELAY_HEADERS.has(key.toLowerCase())) {
+          headers.set(key, Array.isArray(value) ? value.join(',') : value)
+        }
+      }
+      const init: RequestInit = { method, headers }
+      if (method === 'POST') init.body = await readBody(req)
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS)
+      let upstream: Response
+      try {
+        upstream = await fetch(target, { ...init, signal: controller.signal })
+      } finally {
+        clearTimeout(timer)
+      }
+      const buffer = Buffer.from(await upstream.arrayBuffer())
+      res.writeHead(upstream.status, {
+        'content-type': upstream.headers.get('content-type') ?? 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      })
+      res.end(method === 'HEAD' ? undefined : buffer)
+    } catch (error) {
+      httpCtx.logger.warn(error instanceof Error ? error : new Error(String(error)))
+      if (!res.headersSent) sendJson(res, 502, { error: 'upstream fetch failed' })
+      else res.end()
     }
   }
 }

@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { IconLikeOutline16, IconPlusOutline16, IconSearchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLikeOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketplaceStore, SkillRow } from './store.ts'
 import { useMarketplaceSnapshot } from './store.ts'
 import { PublishSkillDialog } from './PublishSkillDialog.tsx'
@@ -33,7 +33,7 @@ function avatarFallback(name: string): string {
 }
 
 function SkillAvatar({ name, slug }: { name: string; slug: string }): JSX.Element {
-  return <div className={styles.avatar}>{avatarFallback(name || slug)}</div>
+  return <div className={`${styles.avatar} ${styles.avatarSquare} ${styles.skillLogo}`}>{avatarFallback(name || slug)}</div>
 }
 
 /** Format an ISO timestamp / epoch into a short Chinese date string. */
@@ -62,29 +62,21 @@ export function SkillsTab({ controller, t }: SkillsTabProps): JSX.Element {
   // Reactively bind to the store so query/install mutations re-render the
   // card grid; otherwise the component reads once and silently drifts.
   const state = useMarketplaceSnapshot(controller)
-  const [queryDraft, setQueryDraft] = useState(state.skills.query)
-  /** Publish-skill dialog — only reachable when a token is saved. */
+  /** Publish-skill dialog — opened from the unified top-bar button. */
   const [publishOpen, setPublishOpen] = useState(false)
-  const canPublish = state.expertToken.length > 0
 
+  // The publish button lives in the panel top bar; it asks us to open the
+  // dialog through a window event so the dialog state stays local here.
   useEffect(() => {
-    setQueryDraft((prev) => prev === state.skills.query ? prev : state.skills.query)
-  }, [state.skills.query])
-
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if (queryDraft !== state.skills.query) {
-        controller.setSkillQuery(queryDraft)
-        void controller.loadSkills()
-      }
-    }, 250)
-    return () => clearTimeout(handle)
-  }, [queryDraft, controller, state.skills.query])
+    const onOpen = (): void => setPublishOpen(true)
+    window.addEventListener('dsh:open-publish-skill', onOpen as EventListener)
+    return () => window.removeEventListener('dsh:open-publish-skill', onOpen as EventListener)
+  }, [])
 
   // Same client-side filter as ExpertsTab — upstream `/skills?q=` is a
   // pass-through that does not trim the catalog today.
   const visibleSkills = (() => {
-    const q = queryDraft.trim().toLowerCase()
+    const q = state.skills.query.trim().toLowerCase()
     if (q.length === 0) return state.skills.items
     return state.skills.items.filter((row) => {
       if (row.displayName.toLowerCase().includes(q)) return true
@@ -99,41 +91,6 @@ export function SkillsTab({ controller, t }: SkillsTabProps): JSX.Element {
 
   return (
     <>
-      <div className={styles.toolbar}>
-        <div className={styles.search}>
-          <IconSearchOutline16 size={16} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder={t('searchPlaceholder')}
-            value={queryDraft}
-            onChange={(e) => setQueryDraft(e.target.value)}
-          />
-        </div>
-        {canPublish && (
-          <button
-            type="button"
-            className={styles.toolbarActionBtn}
-            title={t('skillPublishHint')}
-            aria-label={t('skillPublish')}
-            onClick={() => setPublishOpen(true)}
-          >
-            <IconPlusOutline16 size={16} />
-            <span>{t('skillPublish')}</span>
-          </button>
-        )}
-        {state.isOffline && (
-          <span
-            className={styles.offlineBadge}
-            title={t('offlineDataHint')}
-            aria-label={t('offlineDataHint')}
-          >
-            <span className={styles.offlineBadgeDot} aria-hidden="true" />
-            {t('offlineDataBadge')}
-          </span>
-        )}
-      </div>
-
       <div>
         {state.skills.status === 'loading' && state.skills.items.length === 0 && <SkillsSkeleton />}
         {state.skills.status === 'error' && (
@@ -298,7 +255,7 @@ function SkillCardCorner({
           title={favorited ? t('expertFavorited') : t('expertFavorite')}
           onClick={(e) => { e.stopPropagation(); controller.toggleSkillFavorite(slug) }}
         >
-          <IconLikeOutline16 size={16} />
+          <IconLikeOutlineRegular size={16} />
         </button>
       )}
       {installed && (

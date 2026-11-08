@@ -13,8 +13,8 @@
  *  • "管理连接器" in the composer popover still deep-links to this tab.
  */
 
-import { useState, useMemo } from 'react'
-import { IconCheckOutline16, IconLinkOutline16, IconSearchOutline16, IconSettingsOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useState, useEffect, useMemo } from 'react'
+import { IconLinkOutlineRegular, IconSettingsOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   type MarketplaceStore,
   type ConnectorRow,
@@ -38,20 +38,18 @@ interface ConnectorAvatarProps {
 function ConnectorAvatar({ name, url }: ConnectorAvatarProps): JSX.Element {
   if (url.length > 0) {
     return (
-      <div className={styles.avatar}>
+      <div className={`${styles.avatar} ${styles.avatarSquare} ${styles.connectorLogo}`}>
         <img src={url} alt="" loading="lazy" onError={(e) => { (e.currentTarget.style.display = 'none') }} />
       </div>
     )
   }
   const fallback = name.trim().length === 0 ? '?' : Array.from(name.trim())[0]?.toUpperCase() ?? '?'
-  return <div className={styles.avatar}>{fallback}</div>
+  return <div className={`${styles.avatar} ${styles.avatarSquare} ${styles.connectorLogo}`}>{fallback}</div>
 }
 
 export function ConnectorsTab({ controller, t }: ConnectorsTabProps): JSX.Element {
   // Subscribe — same reason as the other tabs: the input/state must update.
   const state = useMarketplaceSnapshot(controller)
-  /** Local-only search filter (case-insensitive name + description). */
-  const [query, setQuery] = useState('')
   /** id of the connector that hit a pop-up blocker — shows a hint inline. */
   const [popupBlockedId, setPopupBlockedId] = useState<string | null>(null)
   /** id awaiting the OAuth popup callback. */
@@ -64,11 +62,21 @@ export function ConnectorsTab({ controller, t }: ConnectorsTabProps): JSX.Elemen
   const [fillingId, setFillingId] = useState<string | null>(null)
   const [lastFilledAt, setLastFilledAt] = useState<number>(0)
 
+  // The bulk-params gear lives in the panel top bar; it asks us to open the
+  // drawer through a window event so the dialog state stays local here.
+  useEffect(() => {
+    const onOpen = (): void => setBulkParamsOpen(true)
+    window.addEventListener('dsh:open-connector-params', onOpen as EventListener)
+    return () => window.removeEventListener('dsh:open-connector-params', onOpen as EventListener)
+  }, [])
+
+  // The keyword filter lives in the store now so the unified top-bar
+  // search box can drive it.
   const items = useMemo(() => state.connectors.items.filter((c) => {
-    if (query.trim().length === 0) return true
-    const q = query.toLowerCase()
+    if (state.connectorQuery.trim().length === 0) return true
+    const q = state.connectorQuery.toLowerCase()
     return c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
-  }), [state.connectors.items, query])
+  }), [state.connectors.items, state.connectorQuery])
 
   const enabledItems = useMemo(
     () => items.filter((c) => controller.isConnectorEnabled(c.id)),
@@ -164,30 +172,11 @@ export function ConnectorsTab({ controller, t }: ConnectorsTabProps): JSX.Elemen
 
   return (
     <>
-      <div className={styles.toolbar}>
-        <div className={styles.search}>
-          <IconSearchOutline16 size={16} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder={t('searchPlaceholder')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <button
-          type="button"
-          className={styles.iconBtn}
-          title={t('connectorParamsTitle')}
-          aria-label={t('connectorParamsTitle')}
-          onClick={() => setBulkParamsOpen(true)}
-        >
-          <IconSettingsOutline16 size={18} />
-        </button>
-        {lastFilledAt > 0 && Date.now() - lastFilledAt < 4000 && (
+      {lastFilledAt > 0 && Date.now() - lastFilledAt < 4000 && (
+        <div className={styles.fillToastRow}>
           <span className={styles.fillToast}>{t('connectorFillDone')}</span>
-        )}
-      </div>
+        </div>
+      )}
 
       <div>
         {state.connectors.status === 'loading' && state.connectors.items.length === 0 && <ConnectorsSkeleton />}
@@ -276,7 +265,7 @@ function ConnectorCard({
     buttonLabel = t('connectorConnect')
   }
   return (
-    <div className={styles.card} data-enabled={isEnabled ? 'true' : 'false'}>
+    <div className={`${styles.card} ${styles.connectorCard}`} data-enabled={isEnabled ? 'true' : 'false'}>
       <div className={styles.cardCornerConnector}>
         <button
           type="button"
@@ -286,38 +275,33 @@ function ConnectorCard({
           title={isConfigured ? t('connectorConfigured') : `${t('connectorUnconfigured')}：${missingRequired.join(', ') || '—'}`}
           onClick={(e) => { e.stopPropagation(); onOpenParams() }}
         >
-          <IconSettingsOutline16 size={14} />
+          <IconSettingsOutlineRegular size={14} />
         </button>
       </div>
       <div className={styles.cardHeader}>
         <ConnectorAvatar name={row.name} url={row.iconUrl} />
         <div className={styles.cardBody}>
           <h3 className={styles.cardName}>
-            {row.name}
-            {row.connected && <span className={styles.tabIcon} style={{ color: '#52c41a', display: 'inline-flex' }}><IconCheckOutline16 size={14} /></span>}
+            <span className={styles.connectorNameText}>{row.name}</span>
+            <span
+              className={`${styles.statusDot} ${row.connected ? styles.statusDotConnected : ''}`}
+              title={row.connected ? t('connectorConnected') : t('connectorNotConnected')}
+            />
+            {!isConfigured && missingRequired.length > 0 && (
+              <span
+                className={styles.connectorWarnIcon}
+                title={`${t('connectorMissingParams')}：${missingRequired.join(', ')}`}
+              >⚠</span>
+            )}
           </h3>
           <p className={styles.cardCategory}>
             {row.source === 'builtin' ? t('connectorBuiltin') : t('connectorExternal')}
+            <span className={styles.connectorMetaSep}>·</span>
+            {row.connected ? t('connectorConnected') : t('connectorNotConnected')}
           </p>
         </div>
       </div>
       <p className={styles.cardIntro}>{row.description}</p>
-      <div className={styles.statusRow}>
-        <span className={`${styles.statusDot} ${row.connected ? styles.statusDotConnected : ''}`} />
-        <span>{row.connected ? t('connectorConnected') : t('connectorNotConnected')}</span>
-        {isOAuth && !row.connected && (
-          <span className={styles.statusRowMeta}>
-            <IconLinkOutline16 size={12} className={styles.statusRowMetaIcon} />
-            <span>{t('connectorAuthHint')}</span>
-          </span>
-        )}
-      </div>
-      {!isConfigured && missingRequired.length > 0 && (
-        <div className={styles.cardMissingParams}>
-          <span>⚠</span>
-          <span>{t('connectorMissingParams')}：{missingRequired.map((m) => <code key={m}>{m}</code>)}</span>
-        </div>
-      )}
       <div className={styles.cardFooter}>
         <div className={styles.cardTags}>
           {row.tags.map((tag) => (
@@ -355,7 +339,7 @@ function ConnectorCard({
             title={row.connected ? t('connectorDisconnect') : (isOAuth ? t('connectorOAuthHint') : '')}
           >
             {!row.connected && !pending ? (
-              <IconLinkOutline16 size={16} />
+              <IconLinkOutlineRegular size={16} />
             ) : (
               buttonLabel
             )}

@@ -12,7 +12,7 @@
  * actually do something and which will be no-ops because of missing auth.
  */
 import { useState } from 'react'
-import { IconLinkOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLinkOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketplaceStore } from './store.ts'
 import type { en } from './locales.ts'
 import styles from './styles.module.css'
@@ -79,7 +79,7 @@ export function MarketplaceSettingsDialog({
             target="_blank"
             rel="noreferrer noopener"
           >
-            <IconLinkOutline16 size={14} className={styles.expertTokenHelpLinkIcon} />
+            <IconLinkOutlineRegular size={14} className={styles.expertTokenHelpLinkIcon} />
             {t('marketplaceSettingsGetToken')}
           </a>
         </div>

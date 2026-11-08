@@ -25,6 +25,23 @@ const PROXIES: ReadonlyArray<(target: string) => string> = [
  *  making the user wait too long when everything is down. */
 const PROXY_TIMEOUT_MS = 3000
 
+/**
+ * Same-origin node-half reverse proxy prefix (registered by the plugin's
+ * node half in src/index.ts). The browser calls this loopback URL and the
+ * host relays it to the upstream — no CORS involved, so it is the preferred
+ * path in the dsh web profile. Electron (file://) has no such route.
+ */
+const LOCAL_PROXY_PREFIX = '/plugins/ui-marketplace/upstream'
+/** The local relay still has to reach the public upstream; allow more time
+ *  than a single public proxy, since it is the only hop we wait on. */
+const LOCAL_PROXY_TIMEOUT_MS = 20000
+
+/** Whether a same-origin HTTP host exists (false under file:// in Electron). */
+function localProxyAvailable(): boolean {
+  return typeof location !== 'undefined'
+    && (location.protocol === 'http:' || location.protocol === 'https:')
+}
+
 /** Whether the most recent `fetchJson` call fell back to bundled mock data.
  *  The store reads this flag after each call to flip the UI's "本地数据"
  *  pill. Reset at the start of every call so the flag always reflects the
@@ -187,6 +204,18 @@ export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<
   mockInUse = false
   const target = `${UPSTREAM_BASE}${path}`
   let lastErr: unknown = new Error('All CORS proxies failed')
+  // Preferred path: the plugin's own node-half relay (same origin, no CORS).
+  if (localProxyAvailable()) {
+    try {
+      const init: RequestInit = { headers: { 'Accept': 'application/json' } }
+      if (signal !== undefined) init.signal = signal
+      const resp = await fetchWithTimeout(LOCAL_PROXY_PREFIX + path, init, LOCAL_PROXY_TIMEOUT_MS)
+      if (resp.ok) return (await resp.json()) as T
+      lastErr = new Error(`local proxy returned ${resp.status}`)
+    } catch (error) {
+      lastErr = error
+    }
+  }
   for (const wrap of PROXIES) {
     try {
       const init: RequestInit = { headers: { 'Accept': 'application/json' } }
@@ -221,6 +250,27 @@ export async function postJson(path: string, body: unknown, token: string): Prom
   mockInUse = false
   const target = `${UPSTREAM_BASE}${path}`
   let lastErr: unknown = new Error('All CORS proxies failed')
+  // Preferred path: same-origin node-half relay; it forwards Authorization.
+  if (localProxyAvailable()) {
+    try {
+      const resp = await fetchWithTimeout(LOCAL_PROXY_PREFIX + path, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      }, LOCAL_PROXY_TIMEOUT_MS)
+      if (resp.ok) {
+        await resp.text()
+        return
+      }
+      lastErr = new Error(`local proxy returned ${resp.status}`)
+    } catch (error) {
+      lastErr = error
+    }
+  }
   for (const wrap of PROXIES) {
     try {
       const resp = await fetchWithTimeout(wrap(target), {

@@ -69,18 +69,35 @@ Token 是解锁所有「写操作」的唯一凭证 —— 收藏专家、发布
 
 ## 界面截图
 
-> 截图待补充，建议采集：
->
-> - ![专家](docs/screenshots/marketplace-panel.png) 
-   — 专家.
-> - ![专家卡片悬浮显示「召唤」按钮](docs/screenshots/expert-invoked.png) 
-   — 专家卡片悬浮显示「召唤」按钮
-> - ![技能](docs/screenshots/skills-tab.png) 
-   — ⚙ 技能 
-> - ![连接器](docs/screenshots/connectors-tab.png) 
-   — 连接器.
+### 专家标签页
 
-<!-- ![应用市场面板](docs/screenshots/marketplace-panel.png) -->
+左侧分类栏 + 右侧专家卡片网格，已安装/未安装状态一目了然：
+
+![专家标签页](docs/screenshots/marketplace-experts-tab.png)
+
+### 技能标签页
+
+可搜索的技能列表，支持一键「试一试」：
+
+![技能标签页](docs/screenshots/marketplace-skills-tab.png)
+
+### 连接器标签页
+
+连接器目录，每个连接器可独立开关：
+
+![连接器标签页](docs/screenshots/marketplace-connectors-tab.png)
+
+### 悬浮 → 召唤（预填对话框）
+
+点击专家卡片的「召唤」按钮后，对话框自动预填并注入专家芯片：
+
+![召唤专家 - 预填对话框](docs/screenshots/expert-invoked-composer.png)
+
+### 专家快速选择
+
+对话框旁的专家下拉菜单，快速切换已安装专家：
+
+![专家快速选择](docs/screenshots/expert-quick-picker.png)
 
 ---
 
@@ -89,45 +106,126 @@ Token 是解锁所有「写操作」的唯一凭证 —— 收藏专家、发布
 | 依赖项 | 版本要求 |
 | --- | --- |
 | Node.js | `^22.19 \|\| >=24` |
-| 包管理器 | `pnpm`（仓库为 workspace 结构） |
+| 包管理器 | `pnpm` |
 | React | `^18.2.0`（peer） |
 | DeepSeek API Key | 可选 —— 仅宿主以真实 Agent 运行 web 时需要 |
 
 插件本身为纯前端，通过 `src/client/api.ts` 中的自有 CORS 中继访问
 `skill.dualpaw.com`，注册中心不可达时回退到 Mock 数据，构建期无需任何密钥。
 
-本包位于 DeepSeek Harness 单体仓库内（`packages/client/ui-marketplace`），
-使用仓库统一的 `tsdown` 流水线构建。
+本包为独立仓库，使用 `tsdown` 构建，不依赖 monorepo。
 
 ---
 
 ## 安装
 
-### 作为 workspace 包（开发）
+### 1. 前置条件
 
-在仓库根目录执行：
+| 依赖项 | 版本要求 | 说明 |
+| --- | --- | --- |
+| Node.js | `^22.19 \|\| >=24` | dsh CLI 的运行时 |
+| pnpm | `>=9` | dsh CLI 的包管理器 |
+| dsh CLI | 最新版 | DeepSeek Harness 命令行工具（首次安装见下） |
+| React | `^18.2.0`（peer） | 由 dsh 宿主提供，无需单独安装 |
+
+**安装 dsh CLI**（如尚未安装）：
 
 ```sh
-pnpm install
-pnpm --filter @deepseek-ai/dsh-client-ui-marketplace bundle
+# 安装 pnpm（如已有 pnpm 可跳过）
+npm install -g pnpm
+
+# 配置 pnpm 全局 bin 目录（首次执行即可）
+pnpm setup
+source ~/.zshrc
+
+# 安装 dsh CLI
+pnpm add -g @deepseek-ai/dsh
+
+# 验证
+dsh --version
 ```
 
-`bundle`（基于 `tsdown`）将 `src/` 编译为运行时产物：
+> 若遇到 `ERR_PNPM_NO_GLOBAL_BIN_DIR` 错误，请执行 `pnpm setup` 并 `source ~/.zshrc` 后重试。
 
-- `lib/index.js` — ESM 入口（宿主加载）。
-- `lib/client.js` — web 客户端加载的浏览器端产物。
+---
 
-> ⚠️ 运行中的 web 客户端加载的是**编译后的 `lib/client.js`**，而非 `src/`。
-> 修改 `src/` 后必须重新执行上面的 `bundle` 脚本（并重启 `dsh web`）改动才会生效。
+### 2. 安装插件到 dsh web（普通用户）
 
-### 启动宿主 web 客户端
+直接从 npm 或 GitHub 安装最新版插件到 `web` profile：
 
 ```sh
-pnpm dsh web --port 8080
-# 打开 http://127.0.0.1:8080
+# 从 GitHub 安装（推荐，与仓库同步）
+dsh plugin --profile web add github:open-dshai/dsh-employee
+
+# 或从 npm 安装
+# dsh plugin --profile web add @deepseek-ai/dsh-employee-marketplace
+```
+
+安装完成后启动 dsh web：
+
+```sh
+dsh web --port 8080
+# 浏览器会自动打开 http://127.0.0.1:8080
 ```
 
 在侧边栏点击 **应用市场** 入口即可打开面板。
+
+---
+
+### 3. 从本地源码安装（开发者）
+
+如果你想修改插件源码并实时调试，请按以下步骤操作：
+
+#### 3.1 克隆源码并安装依赖
+
+```sh
+git clone https://github.com/open-dshai/dsh-employee.git
+cd dsh-employee
+pnpm install
+```
+
+#### 3.2 构建产物
+
+```sh
+pnpm bundle
+```
+
+这会生成：
+- `lib/index.js` — Node 端入口（宿主加载）
+- `lib/client.js` — 浏览器端产物（web 客户端加载）
+
+> ⚠️ 运行中的 web 客户端加载的是**编译后的 `lib/client.js`**，而非 `src/`。
+> 修改 `src/` 后必须重新执行 `pnpm bundle`（并重启 `dsh web`）改动才会生效。
+> 开发时可用 `pnpm watch` 开启监听模式自动重新构建。
+
+#### 3.3 将本地目录链接到 dsh web profile
+
+使用 `dsh plugin add` 命令将本地源码目录链接到 web profile（推荐）：
+
+```sh
+dsh plugin --profile web add /absolute/path/to/dsh-employee
+```
+
+将 `/absolute/path/to/dsh-employee` 替换为你的源码目录绝对路径。
+
+> ⚠️ 若遇到 `ERR_PNPM_UNEXPECTED_STORE` 或 `ERR_PNPM_INVALID_VERSION_UNION` 错误，
+> 说明全局 pnpm 版本过低。请执行 `pnpm add -g pnpm@latest` 升级后重试。
+
+然后重启 dsh web：
+
+```sh
+dsh web --port 8080
+```
+
+之后每次修改源码 → `pnpm bundle` → 刷新浏览器页面即可看到效果。
+
+---
+
+### 4. 卸载插件
+
+```sh
+dsh plugin --profile web remove @deepseek-ai/dsh-employee-marketplace
+```
 
 ---
 
@@ -149,23 +247,28 @@ pnpm dsh web --port 8080
 ## 目录结构
 
 ```
-packages/client/ui-marketplace/
-├── src/client/
-│   ├── index.ts                    # 插件入口（apply + locale 注册）
-│   ├── store.ts                    # MarketplaceStore（目录、安装、收藏、发布）
-│   ├── api.ts                      # 访问 skill.dualpaw.com 的 CORS 中继 + Mock 回退
-│   ├── MarketplaceController.ts    # 面板开关 + 单占用协调
-│   ├── MarketplacePanel.tsx        # 三标签页中栏面板
-│   ├── ExpertsTab.tsx              # 专家网格 + 悬浮召唤 + 收藏
-│   ├── SkillsTab.tsx               # 技能列表 + 发布工具栏操作
-│   ├── ConnectorsTab.tsx           # 连接器目录 + 对话框芯片
-│   ├── MarketplaceSettingsDialog.tsx  # ⚙ 参数设置（Token + 注册链接）
-│   ├── PublishSkillDialog.tsx      # 发布技能对话框（Token 限制）
-│   ├── invoke.ts                   # 调用桥（dsh:invoke-* 事件）
-│   ├── locales.ts                  # 中英文 i18n 词典
-│   └── styles.module.css           # CSS Modules
+dsh-employee/
+├── src/
+│   ├── index.ts                    # Node 端入口（安装/卸载技能路由）
+│   └── client/
+│       ├── index.ts                # 浏览器端插件入口（apply + inject）
+│       ├── store.ts                # MarketplaceStore（目录、安装、收藏、发布）
+│       ├── api.ts                  # 访问 skill.dualpaw.com 的 CORS 中继 + Mock 回退
+│       ├── MarketplaceController.ts # 面板开关 + 单占用协调
+│       ├── MarketplacePanel.tsx    # 三标签页中栏面板
+│       ├── ExpertsTab.tsx          # 专家网格 + 悬浮召唤 + 收藏
+│       ├── SkillsTab.tsx           # 技能列表 + 发布/试一试操作
+│       ├── ConnectorsTab.tsx       # 连接器目录 + 对话框芯片
+│       ├── MarketplaceSettingsDialog.tsx # ⚙ 参数设置（Token + 注册链接）
+│       ├── PublishSkillDialog.tsx  # 发布技能对话框（Token 限制）
+│       ├── invoke.ts               # 调用桥（dsh:invoke-* 事件）
+│       ├── locales.ts              # 中英文 i18n 词典
+│       └── styles.module.css       # CSS Modules
 ├── lib/                            # 构建产物（tsdown）—— 勿手改
-├── tsdown.config.ts
+├── tsdown.config.ts                # tsdown 构建配置（双入口）
+├── tsdown.css-plugin.ts            # CSS Modules 内联插件
+├── tsdown.client-plugin.ts         # __ModuleLoader__ 包装插件
+├── .npmrc                          # npm registry 配置
 └── package.json
 ```
 

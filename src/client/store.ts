@@ -33,6 +33,13 @@ const LS_FAVORITE_EXPERTS = 'dsh.marketplace.favorite.experts.v1'
 /** Locally toggled skill favorites (slugs), persisted across sessions. */
 const LS_FAVORITE_SKILLS = 'dsh.marketplace.favorite.skills.v1'
 
+/** Recently installed experts, newest first. The install sets only keep
+ *  ids, while the composer hero picker needs name/avatar to render, so the
+ *  display metadata is snapshotted here at install time. */
+const LS_RECENT_EXPERTS = 'dsh.marketplace.recent.experts.v1'
+/** Recently installed skills (slugs + display names), newest first. */
+const LS_RECENT_SKILLS = 'dsh.marketplace.recent.skills.v1'
+
 /* ── Wire shapes (re-declared to keep the bundle Node-free) ── */
 
 export interface ExpertRow {
@@ -75,6 +82,23 @@ export interface SkillDetail extends SkillRow {
   readonly instructions?: string | undefined
   readonly latestVersion?: { version: string; changelog?: string | null; license?: string | null; createdAt: number } | undefined
   readonly moderation?: { verdict: string; isSuspicious?: boolean; isMalwareBlocked?: boolean } | undefined
+}
+
+/** Display metadata of an installed expert, captured at install time
+ *  so the composer hero picker can render name/avatar without a refetch. */
+export interface RecentExpert {
+  readonly id: number
+  readonly name: string
+  readonly slug?: string | undefined
+  readonly avatarUrl: string
+  readonly ts: number
+}
+
+/** Display metadata of an installed skill, captured at install time. */
+export interface RecentSkill {
+  readonly slug: string
+  readonly displayName: string
+  readonly ts: number
 }
 
 export interface ConnectorRow {
@@ -136,6 +160,63 @@ function saveInstallState(state: InstallState): void {
   } catch { /* quota / private mode — ignore */ }
 }
 
+/** How many recent entries to persist (the hero picker only shows the
+ *  first PICKER_RECENT_LIMIT, but a slightly larger buffer survives churn). */
+const RECENT_LIMIT = 20
+
+function loadRecentExperts(): RecentExpert[] {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(LS_RECENT_EXPERTS)
+    if (raw === null) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    const out: RecentExpert[] = []
+    for (const item of parsed) {
+      if (item === null || typeof item !== 'object') continue
+      const rec = item as Record<string, unknown>
+      const id = Number(rec.id)
+      if (!Number.isFinite(id)) continue
+      const name = typeof rec.name === 'string' ? rec.name : ''
+      const slug = typeof rec.slug === 'string' ? rec.slug : undefined
+      const avatarUrl = typeof rec.avatarUrl === 'string' ? rec.avatarUrl : ''
+      const ts = Number(rec.ts)
+      out.push({ id, name, slug, avatarUrl, ts: Number.isFinite(ts) ? ts : 0 })
+    }
+    return out
+  } catch { return [] }
+}
+
+function saveRecentExperts(rows: readonly RecentExpert[]): void {
+  if (typeof localStorage === 'undefined') return
+  try { localStorage.setItem(LS_RECENT_EXPERTS, JSON.stringify(rows)) } catch { /* quota */ }
+}
+
+function loadRecentSkills(): RecentSkill[] {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(LS_RECENT_SKILLS)
+    if (raw === null) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    const out: RecentSkill[] = []
+    for (const item of parsed) {
+      if (item === null || typeof item !== 'object') continue
+      const rec = item as Record<string, unknown>
+      if (typeof rec.slug !== 'string' || rec.slug.length === 0) continue
+      const displayName = typeof rec.displayName === 'string' ? rec.displayName : rec.slug
+      const ts = Number(rec.ts)
+      out.push({ slug: rec.slug, displayName, ts: Number.isFinite(ts) ? ts : 0 })
+    }
+    return out
+  } catch { return [] }
+}
+
+function saveRecentSkills(rows: readonly RecentSkill[]): void {
+  if (typeof localStorage === 'undefined') return
+  try { localStorage.setItem(LS_RECENT_SKILLS, JSON.stringify(rows)) } catch { /* quota */ }
+}
+
 export type MarketplaceTab = 'experts' | 'skills' | 'connectors'
 
 export interface MarketplaceState {
@@ -170,6 +251,8 @@ export interface MarketplaceState {
     error: string | null
   }
   pendingConnectorId: string | null
+  /** Local-only keyword filter for the connector grid (name + description). */
+  connectorQuery: string
   /** True when the most recent experts/skills fetch fell back to the
    *  bundled mock dataset (every CORS proxy failed). Drives the
    *  "本地数据" pill in the tabs. */
@@ -190,6 +273,12 @@ export interface MarketplaceState {
   /** Locally toggled skill favorites (slugs). Persisted to localStorage;
    *  reflected via `isSkillFavorited`. */
   favoriteSkills: ReadonlySet<string>
+  /** Recently installed experts, newest first. Feeds the composer hero
+   *  quick picker; persisted to localStorage. */
+  recentExperts: readonly RecentExpert[]
+  /** Recently installed skills, newest first. Feeds the composer hero
+   *  quick picker; persisted to localStorage. */
+  recentSkills: readonly RecentSkill[]
 }
 
 function saveEnabledState(state: Readonly<Record<string, boolean>>): void {
@@ -215,13 +304,14 @@ const initial: MarketplaceState = {
   status: 'idle',
   activeTab: 'experts',
   error: null,
-  experts: { status: 'idle', items: [], total: 0, page: 0, size: 24, error: null, categoryId: null, query: '' },
+  experts: { status: 'idle', items: [], total: 0, page: 0, size: 100, error: null, categoryId: null, query: '' },
   expertCategories: [],
   expertDetail: { status: 'idle', expert: null, error: null },
   skills: { status: 'idle', items: [], nextCursor: null, error: null, query: '', sort: 'newest', starredOnly: false },
   skillDetail: { status: 'idle', skill: null, error: null },
   connectors: { status: 'idle', items: [], error: null },
   pendingConnectorId: null,
+  connectorQuery: '',
   isOffline: false,
   install: loadInstallState(),
   connectorParams: loadConnectorParams(),
@@ -229,6 +319,8 @@ const initial: MarketplaceState = {
   expertToken: loadExpertToken(),
   favoriteExperts: loadFavoriteExperts(),
   favoriteSkills: loadFavoriteSkills(),
+  recentExperts: loadRecentExperts(),
+  recentSkills: loadRecentSkills(),
 }
 
 /** Human text for a rejected call. */
@@ -743,12 +835,17 @@ export class MarketplaceStore {
   }
 
   async loadExpertDetail(id: number): Promise<void> {
-    this.store.update((s) => ({ ...s, expertDetail: { status: 'loading', expert: null, error: null } }))
+    // Open the overlay immediately with the list row as a placeholder, so
+    // the user sees the panel (and its loading state) instead of a dead
+    // click while the proxies time out. On hard failure the placeholder
+    // stays on screen and the error is rendered inside the overlay.
+    const placeholder = this.snapshot.experts.items.find((e) => e.id === id) ?? null
+    this.store.update((s) => ({ ...s, expertDetail: { status: 'loading', expert: placeholder, error: null } }))
     try {
       const raw = await fetchJson<{ code: number; data: Record<string, unknown> }>(`/strategist/${id}`)
       this.store.update((s) => ({ ...s, expertDetail: { status: 'ready', expert: asExpertDetail(raw.data ?? {}, UPSTREAM), error: null } }))
     } catch (error) {
-      this.store.update((s) => ({ ...s, expertDetail: { status: 'error', expert: null, error: messageOf(error) } }))
+      this.store.update((s) => ({ ...s, expertDetail: { status: 'error', expert: s.expertDetail.expert, error: messageOf(error) } }))
     }
   }
 
@@ -760,6 +857,9 @@ export class MarketplaceStore {
 
   setSkillQuery(query: string): void {
     this.store.update((s) => ({ ...s, skills: { ...s.skills, query } }))
+  }
+  setConnectorQuery(query: string): void {
+    this.store.update((s) => ({ ...s, connectorQuery: query }))
   }
   setSkillSort(sort: 'newest' | 'relevance'): void {
     this.store.update((s) => ({ ...s, skills: { ...s.skills, sort } }))
@@ -800,12 +900,16 @@ export class MarketplaceStore {
   }
 
   async loadSkillDetail(slug: string): Promise<void> {
-    this.store.update((s) => ({ ...s, skillDetail: { status: 'loading', skill: null, error: null } }))
+    // Same placeholder pattern as loadExpertDetail: open the overlay at
+    // once with the card row, then fill in the full payload or show the
+    // error inline without closing the panel.
+    const placeholder = this.snapshot.skills.items.find((k) => k.slug === slug) ?? null
+    this.store.update((s) => ({ ...s, skillDetail: { status: 'loading', skill: placeholder, error: null } }))
     try {
       const raw = await fetchJson<{ skill: Record<string, unknown> }>(`/skills/${encodeURIComponent(slug)}`)
       this.store.update((s) => ({ ...s, skillDetail: { status: 'ready', skill: asSkillDetail(raw.skill ?? {}), error: null } }))
     } catch (error) {
-      this.store.update((s) => ({ ...s, skillDetail: { status: 'error', skill: null, error: messageOf(error) } }))
+      this.store.update((s) => ({ ...s, skillDetail: { status: 'error', skill: s.skillDetail.skill, error: messageOf(error) } }))
     }
   }
 
@@ -952,15 +1056,25 @@ export class MarketplaceStore {
       downloading.add(slug)
       return { ...s, install: { ...s.install, downloadingSkills: downloading } }
     })
+    // Snapshot the catalog row before the write so the hero picker can
+    // show the skill's display name even after the catalog is reloaded.
+    const row = this.snapshot.skills.items.find((r) => r.slug === slug)
     const ok = await this.writeSkillToDisk(slug)
     this.store.update((s) => {
       const installed = new Set(s.install.installedSkills)
-      if (ok) installed.add(slug)
+      let recentSkills = s.recentSkills
+      if (ok) {
+        installed.add(slug)
+        // Newest first, dedupe by slug, capped — the picker reads the head.
+        const entry: RecentSkill = { slug, displayName: row?.displayName ?? slug, ts: Date.now() }
+        recentSkills = [entry, ...s.recentSkills.filter((r) => r.slug !== slug)].slice(0, RECENT_LIMIT)
+        saveRecentSkills(recentSkills)
+      }
       const downloading = new Set(s.install.downloadingSkills)
       downloading.delete(slug)
       const next: InstallState = { ...s.install, installedSkills: installed, downloadingSkills: downloading }
       saveInstallState(next)
-      return { ...s, install: next }
+      return { ...s, install: next, recentSkills }
     })
     if (!ok) throw new Error(`skill install failed: ${slug}`)
   }
@@ -984,7 +1098,10 @@ export class MarketplaceStore {
       installed.delete(slug)
       const next: InstallState = { ...s.install, installedSkills: installed }
       saveInstallState(next)
-      return { ...s, install: next }
+      // A removed skill must vanish from the hero picker as well.
+      const recentSkills = s.recentSkills.filter((r) => r.slug !== slug)
+      saveRecentSkills(recentSkills)
+      return { ...s, install: next, recentSkills }
     })
     if (!ok) throw new Error(`skill uninstall failed: ${slug}`)
   }
@@ -1153,6 +1270,9 @@ export class MarketplaceStore {
     // without a second click. Best-effort per skill: one failed write
     // must not block the expert itself.
     const written = await Promise.all(bundled.map((slug) => this.writeSkillToDisk(slug)))
+    // Catalog row for the picker's name/avatar snapshot (best-effort:
+    // when the catalog has not loaded yet, fall back to id-based text).
+    const expertRow = this.snapshot.experts.items.find((r) => r.id === expertId)
     this.store.update((s) => {
       const installed = new Set(s.install.installedExperts)
       installed.add(expertId)
@@ -1166,7 +1286,49 @@ export class MarketplaceStore {
         next.installedSkills = installedSkills
       }
       saveInstallState(next)
-      return { ...s, install: next }
+      // Record the expert at the head of the recent list (dedupe + cap),
+      // so the composer hero picker can show it without a catalog refetch.
+      const entry: RecentExpert = {
+        id: expertId,
+        name: expertRow?.name ?? `专家 ${expertId}`,
+        slug: expertRow?.slug,
+        avatarUrl: expertRow?.avatarUrl ?? '',
+        ts: Date.now(),
+      }
+      const recentExperts = [entry, ...s.recentExperts.filter((r) => r.id !== expertId)].slice(0, RECENT_LIMIT)
+      saveRecentExperts(recentExperts)
+      return { ...s, install: next, recentExperts }
+    })
+  }
+
+  /** Record an expert summon at the head of the recent list. The
+   *  invocation bridge calls this for EVERY summon — an already-installed
+   *  expert skips `installExpert`, so without this touch it would never
+   *  appear in the hero picker's recent list. */
+  touchRecentExpert(entry: { id: number; name: string; slug?: string | undefined; avatarUrl: string }): void {
+    this.store.update((s) => {
+      const rec: RecentExpert = {
+        id: Number(entry.id),
+        name: entry.name,
+        slug: entry.slug,
+        avatarUrl: entry.avatarUrl,
+        ts: Date.now(),
+      }
+      const recentExperts = [rec, ...s.recentExperts.filter((r) => r.id !== rec.id)].slice(0, RECENT_LIMIT)
+      saveRecentExperts(recentExperts)
+      return { ...s, recentExperts }
+    })
+  }
+
+  /** Skill counterpart of `touchRecentExpert`: every 试一试 / picker
+   *  summon refreshes the skill's position in the recent list. */
+  touchRecentSkill(entry: { slug: string; displayName: string }): void {
+    if (entry.slug.length === 0) return
+    this.store.update((s) => {
+      const rec: RecentSkill = { slug: entry.slug, displayName: entry.displayName || entry.slug, ts: Date.now() }
+      const recentSkills = [rec, ...s.recentSkills.filter((r) => r.slug !== rec.slug)].slice(0, RECENT_LIMIT)
+      saveRecentSkills(recentSkills)
+      return { ...s, recentSkills }
     })
   }
 

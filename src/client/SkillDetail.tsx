@@ -5,7 +5,7 @@
  * into a session.
  */
 
-import { Button, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketplaceStore, SkillDetail as SkillDetailModel } from './store.ts'
 import type { en } from './locales.ts'
 import styles from './styles.module.css'
@@ -49,7 +49,7 @@ export function SkillDetail({ controller, detail, loading, error, t }: SkillDeta
             <p className={styles.detailMeta}>v{detail.version} · {formatDate(detail.updatedAt)}</p>
           </div>
           <button type="button" className={styles.detailClose} onClick={handleClose} aria-label={t('close')}>
-            <IconCloseOutline16 size={16} />
+            <IconCloseOutlineRegular size={16} />
           </button>
         </div>
 

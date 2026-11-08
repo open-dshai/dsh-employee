@@ -15,8 +15,9 @@
  */
 import { useEffect, useState } from 'react'
 import {
-  IconAgentPresetOutline16, IconDataOutline16,
-  IconCloseOutline16, IconLinkOutline16, IconSettingsOutline16,
+  IconAgentPresetOutlineRegular, IconDataOutlineRegular,
+  IconCloseOutlineRegular, IconLinkOutlineRegular, IconSettingsOutlineRegular,
+  IconSearchOutlineRegular, IconPlusOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useMarketplaceSnapshot } from './store.ts'
 import type { MarketplaceStore, MarketplaceTab } from './store.ts'
@@ -40,16 +41,49 @@ export interface MarketplacePanelProps {
   initialTab?: MarketplaceTab | undefined
 }
 
-const TAB_META: Record<MarketplaceTab, { labelKey: MarketplaceKey; icon: typeof IconAgentPresetOutline16 }> = {
-  experts: { labelKey: 'tabExperts', icon: IconAgentPresetOutline16 },
-  skills: { labelKey: 'tabSkills', icon: IconDataOutline16 },
-  connectors: { labelKey: 'tabConnectors', icon: IconLinkOutline16 },
+const TAB_META: Record<MarketplaceTab, { labelKey: MarketplaceKey; icon: typeof IconAgentPresetOutlineRegular }> = {
+  experts: { labelKey: 'tabExperts', icon: IconAgentPresetOutlineRegular },
+  skills: { labelKey: 'tabSkills', icon: IconDataOutlineRegular },
+  connectors: { labelKey: 'tabConnectors', icon: IconLinkOutlineRegular },
 }
 
 /** The marketplace panel: top bar + tabs + body + detail overlay. */
 export function MarketplacePanel({ controller, t, onClose, initialTab }: MarketplacePanelProps): JSX.Element {
   const state = useMarketplaceSnapshot(controller)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Unified top-bar search. Each tab owns its query in the store
+  // (experts/skills refetch after a debounce; connectors filter locally),
+  // so the single input binds to whichever tab is active.
+  const activeQuery = state.activeTab === 'experts'
+    ? state.experts.query
+    : state.activeTab === 'skills'
+      ? state.skills.query
+      : state.connectorQuery
+  const [searchDraft, setSearchDraft] = useState(activeQuery)
+  useEffect(() => { setSearchDraft(activeQuery) }, [state.activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      const q = searchDraft
+      if (state.activeTab === 'experts') {
+        if (q !== controller.store.getSnapshot().experts.query) {
+          controller.setExpertQuery(q)
+          void controller.loadExperts()
+        }
+      } else if (state.activeTab === 'skills') {
+        if (q !== controller.store.getSnapshot().skills.query) {
+          controller.setSkillQuery(q)
+          void controller.loadSkills()
+        }
+      } else {
+        if (q !== controller.store.getSnapshot().connectorQuery) controller.setConnectorQuery(q)
+      }
+    }, 250)
+    return () => clearTimeout(handle)
+  }, [searchDraft, state.activeTab, controller])
+
+  /** Whether the publish-skill button may show (token configured, skills tab). */
+  const canPublishSkill = state.activeTab === 'skills' && state.expertToken.length > 0
 
   // Apply the initial tab request — used by the composer connector popover's
   // "管理连接器" affordance to deep-link to the connector tab.
@@ -95,35 +129,8 @@ export function MarketplacePanel({ controller, t, onClose, initialTab }: Marketp
 
   return (
     <div className={styles.panelRoot}>
-      <div className={styles.panelHeader}>
-        <div className={styles.panelHeaderTitle}>
-          <h2 className={styles.title}>{t('title')}</h2>
-          <p className={styles.subtitle}>{t('subtitle')}</p>
-        </div>
-        <div className={styles.panelHeaderActions}>
-          <button
-            type="button"
-            className={styles.panelSettingsBtn}
-            data-configured={state.expertToken.length > 0 ? 'true' : 'false'}
-            aria-label={t('marketplaceSettingsTitle')}
-            title={state.expertToken.length > 0 ? t('marketplaceSettingsConfigured') : t('marketplaceSettingsTitle')}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <IconSettingsOutline16 size={16} />
-          </button>
-          <button
-            type="button"
-            className={styles.panelClose}
-            aria-label={t('close')}
-            title={t('close')}
-            onClick={onClose}
-          >
-            <IconCloseOutline16 size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.tabs} role="tablist">
+      <div className={styles.topBar}>
+        <div className={styles.tabs} role="tablist">
         {(Object.keys(TAB_META) as MarketplaceTab[]).map((tab) => {
           const meta = TAB_META[tab]
           const Icon = meta.icon
@@ -141,6 +148,71 @@ export function MarketplacePanel({ controller, t, onClose, initialTab }: Marketp
             </button>
           )
         })}
+        </div>
+        <div className={styles.topBarActions}>
+          {state.isOffline && (
+            <span
+              className={styles.offlineBadge}
+              title={t('offlineDataHint')}
+              aria-label={t('offlineDataHint')}
+            >
+              <span className={styles.offlineBadgeDot} aria-hidden="true" />
+              {t('offlineDataBadge')}
+            </span>
+          )}
+          <div className={styles.search}>
+            <IconSearchOutlineRegular size={16} className={styles.searchIcon} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={t('searchPlaceholder')}
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+            />
+          </div>
+          {canPublishSkill && (
+            <button
+              type="button"
+              className={styles.toolbarActionBtn}
+              title={t('skillPublishHint')}
+              aria-label={t('skillPublish')}
+              onClick={() => window.dispatchEvent(new CustomEvent('dsh:open-publish-skill'))}
+            >
+              <IconPlusOutlineRegular size={16} />
+              <span>{t('skillPublish')}</span>
+            </button>
+          )}
+          {state.activeTab === 'connectors' && (
+            <button
+              type="button"
+              className={styles.iconBtn}
+              title={t('connectorParamsTitle')}
+              aria-label={t('connectorParamsTitle')}
+              onClick={() => window.dispatchEvent(new CustomEvent('dsh:open-connector-params'))}
+            >
+              <IconSettingsOutlineRegular size={18} />
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.panelSettingsBtn}
+            data-configured={state.expertToken.length > 0 ? 'true' : 'false'}
+            aria-label={t('marketplaceSettingsTitle')}
+            title={state.expertToken.length > 0 ? t('marketplaceSettingsConfigured') : t('marketplaceSettingsTitle')}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <IconSettingsOutlineRegular size={18} />
+          </button>
+          <button
+            type="button"
+            className={styles.panelClose}
+            aria-label={t('close')}
+            title={t('close')}
+            onClick={onClose}
+          >
+            <IconCloseOutlineRegular size={18} />
+          </button>
+        </div>
       </div>
 
       <div className={styles.panelBody}>

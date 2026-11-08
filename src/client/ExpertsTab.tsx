@@ -12,11 +12,10 @@
  *    `dsh:invoke-expert` event so the composer takes over as usual.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { IconLikeOutline16, IconSearchOutline16, IconSettingsOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useMemo, useCallback } from 'react'
+import { IconLikeOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketplaceStore, ExpertRow, ExpertCategoryRow } from './store.ts'
 import { useMarketplaceSnapshot } from './store.ts'
-import { MarketplaceSettingsDialog } from './MarketplaceSettingsDialog.tsx'
 import type { en } from './locales.ts'
 import styles from './styles.module.css'
 
@@ -37,12 +36,12 @@ function avatarFallback(name: string): string {
 function Avatar({ name, url }: { name: string; url: string }): JSX.Element {
   if (url.length > 0) {
     return (
-      <div className={styles.avatar}>
+      <div className={`${styles.avatar} ${styles.avatarRound}`}>
         <img src={url} alt="" loading="lazy" onError={(e) => { (e.currentTarget.style.display = 'none') }} />
       </div>
     )
   }
-  return <div className={styles.avatar}>{avatarFallback(name)}</div>
+  return <div className={`${styles.avatar} ${styles.avatarRound}`}>{avatarFallback(name)}</div>
 }
 
 /**
@@ -55,26 +54,6 @@ export function ExpertsTab({ controller, t }: ExpertsTabProps): JSX.Element {
   // re-render. Without this hook the component reads the store once on
   // mount and never refreshes — making the search appear "broken".
   const state = useMarketplaceSnapshot(controller)
-  const [queryDraft, setQueryDraft] = useState(state.experts.query)
-  /** Whether the global token dialog is open. */
-  const [tokenDialogOpen, setTokenDialogOpen] = useState(false)
-
-  // Sync the local draft when the store is reset externally (e.g. tab
-  // switch) — but skip while the user is mid-typing.
-  useEffect(() => {
-    setQueryDraft((prev) => prev === state.experts.query ? prev : state.experts.query)
-  }, [state.experts.query])
-
-  // Debounce query updates so the upstream sees a stable text.
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if (queryDraft !== state.experts.query) {
-        controller.setExpertQuery(queryDraft)
-        void controller.loadExperts()
-      }
-    }, 250)
-    return () => clearTimeout(handle)
-  }, [queryDraft, controller, state.experts.query])
 
   const categories: readonly ExpertCategoryRow[] = useMemo(
     () => state.expertCategories,
@@ -87,7 +66,7 @@ export function ExpertsTab({ controller, t }: ExpertsTabProps): JSX.Element {
   // upstream grows proper server-side filtering, this no-ops harmlessly
   // (subset of `items` filtered by the same string).
   const visibleItems = useMemo(() => {
-    const q = queryDraft.trim().toLowerCase()
+    const q = state.experts.query.trim().toLowerCase()
     if (q.length === 0) return state.experts.items
     return state.experts.items.filter((row) => {
       if (row.name.toLowerCase().includes(q)) return true
@@ -96,7 +75,7 @@ export function ExpertsTab({ controller, t }: ExpertsTabProps): JSX.Element {
       if (row.category.name.toLowerCase().includes(q)) return true
       return false
     })
-  }, [state.experts.items, queryDraft])
+  }, [state.experts.items, state.experts.query])
 
   const handleInvoke = useCallback(async (row: ExpertRow): Promise<void> => {
     // Always close the detail first (overlay calls this too — safe).
@@ -108,69 +87,36 @@ export function ExpertsTab({ controller, t }: ExpertsTabProps): JSX.Element {
     }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('dsh:invoke-expert', {
-        detail: { id: row.id, name: row.name, slug: row.slug, intro: row.intro },
+        detail: { id: row.id, name: row.name, slug: row.slug, intro: row.intro, avatarUrl: row.avatarUrl },
       }))
     }
   }, [controller])
 
   return (
     <>
-      <div className={styles.toolbar}>
-        <div className={styles.search}>
-          <IconSearchOutline16 size={16} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder={t('searchPlaceholder')}
-            value={queryDraft}
-            onChange={(e) => setQueryDraft(e.target.value)}
-          />
-        </div>
+      <div className={styles.categoryChips} role="tablist" aria-label={t('expertCategoryAll')}>
         <button
           type="button"
-          className={styles.iconBtn}
-          data-configured={state.expertToken.length > 0 ? 'true' : 'false'}
-          title={t('expertParamsTitle')}
-          aria-label={t('expertParamsTitle')}
-          onClick={() => setTokenDialogOpen(true)}
+          className={`${styles.categoryChip} ${state.experts.categoryId === null ? styles.categoryChipActive : ''}`}
+          onClick={() => controller.setExpertCategory(null)}
         >
-          <IconSettingsOutline16 size={18} />
+          {t('expertCategoryAll')}
         </button>
-        {state.isOffline && (
-          <span
-            className={styles.offlineBadge}
-            title={t('offlineDataHint')}
-            aria-label={t('offlineDataHint')}
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            className={`${styles.categoryChip} ${state.experts.categoryId === cat.id ? styles.categoryChipActive : ''}`}
+            onClick={() => controller.setExpertCategory(cat.id)}
           >
-            <span className={styles.offlineBadgeDot} aria-hidden="true" />
-            {t('offlineDataBadge')}
-          </span>
-        )}
+            {cat.icon && <span className={styles.categoryChipIcon} aria-hidden="true">{cat.icon}</span>}
+            <span>{cat.name}</span>
+            {cat.strategistCount > 0 && <span className={styles.categoryChipCount}>{cat.strategistCount}</span>}
+          </button>
+        ))}
       </div>
 
-      <div className={styles.bodySplit}>
-        <aside className={styles.categoryRail}>
-          <button
-            type="button"
-            className={`${styles.categoryItem} ${state.experts.categoryId === null ? styles.active : ''}`}
-            onClick={() => controller.setExpertCategory(null)}
-          >
-            <span>{t('expertCategoryAll')}</span>
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              className={`${styles.categoryItem} ${state.experts.categoryId === cat.id ? styles.active : ''}`}
-              onClick={() => controller.setExpertCategory(cat.id)}
-            >
-              <span>{cat.name}</span>
-              {cat.strategistCount > 0 && <span className={styles.categoryCount}>{cat.strategistCount}</span>}
-            </button>
-          ))}
-        </aside>
-
-        <div>
+      <div className={styles.gridWrap}>
           {state.experts.status === 'loading' && state.experts.items.length === 0 && <ExpertsSkeleton />}
           {state.experts.status === 'error' && (
             <div className={styles.errorBox}>
@@ -194,16 +140,8 @@ export function ExpertsTab({ controller, t }: ExpertsTabProps): JSX.Element {
               ))}
             </div>
           )}
-        </div>
       </div>
 
-      {tokenDialogOpen && (
-        <ExpertTokenDialog
-          controller={controller}
-          onClose={() => setTokenDialogOpen(false)}
-          t={t}
-        />
-      )}
     </>
   )
 }
@@ -253,7 +191,7 @@ function ExpertCard({ row, controller, onOpen, onInvoke, t }: ExpertCardProps): 
           title={favorited ? t('expertFavorited') : t('expertFavorite')}
           onClick={(e) => { e.stopPropagation(); controller.toggleExpertFavorite(row.id) }}
         >
-          <IconLikeOutline16 size={16} />
+          <IconLikeOutlineRegular size={16} />
         </button>
       )}
       <div className={styles.cardHeader}>
@@ -310,23 +248,3 @@ function ExpertsSkeleton(): JSX.Element {
   )
 }
 
-/* ── token settings dialog ────────────────────────────────────────────
-   The same dialog is reachable from the panel header (canonical entry)
-   and the toolbar ⚙ (legacy discoverability for users who already
-   hovered the experts tab). Both surfaces back the shared
-   MarketplaceSettingsDialog, so the registration URL and copy stay
-   in lockstep. */
-
-function ExpertTokenDialog({
-  controller,
-  t,
-  onClose,
-}: {
-  controller: MarketplaceStore
-  t: (k: keyof typeof en) => string
-  onClose: () => void
-}): JSX.Element {
-  return (
-    <MarketplaceSettingsDialog controller={controller} onClose={onClose} t={t} />
-  )
-}

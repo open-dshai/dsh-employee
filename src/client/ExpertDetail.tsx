@@ -5,7 +5,7 @@
  * `dsh:invoke-expert` event the host listens for to spawn a new session.
  */
 
-import { Button, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketplaceStore, ExpertDetail as ExpertDetailModel } from './store.ts'
 import type { en } from './locales.ts'
 import styles from './styles.module.css'
@@ -52,7 +52,7 @@ export function ExpertDetail({ controller, detail, loading, error, t }: ExpertDe
     controller.closeExpertDetail()
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('dsh:invoke-expert', {
-        detail: { id: detail.id, name: detail.name, slug: detail.slug, intro: detail.intro },
+        detail: { id: detail.id, name: detail.name, slug: detail.slug, intro: detail.intro, avatarUrl: detail.avatarUrl },
       }))
     }
   }
@@ -67,7 +67,7 @@ export function ExpertDetail({ controller, detail, loading, error, t }: ExpertDe
             <p className={styles.detailMeta}>{detail.category.name}</p>
           </div>
           <button type="button" className={styles.detailClose} onClick={handleClose} aria-label={t('close')}>
-            <IconCloseOutline16 size={16} />
+            <IconCloseOutlineRegular size={16} />
           </button>
         </div>
 

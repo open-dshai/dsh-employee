@@ -5,9 +5,9 @@
  */
 
 export const en = {
-  nav: 'Marketplace',
-  title: 'Marketplace',
-  subtitle: 'Experts, skills, and connectors — extend your agent.',
+  nav: 'Digital Employee',
+  title: 'Digital Employee',
+  subtitle: 'Experts, skills, and connectors — build your digital employee team.',
   close: 'Close',
 
   // Tabs
@@ -49,7 +49,7 @@ export const en = {
 
   // Publish skill
   skillPublish: 'Publish skill',
-  skillPublishHint: 'Create a new skill and publish it to the marketplace',
+  skillPublishHint: 'Create a new skill and publish it to the digital employee hub',
   skillPublishTitle: 'Publish a skill',
   skillPublishIntro: 'Create a skill and publish it to skill.dualpaw.com. Requires an API token.',
   skillPublishNameLabel: 'Skill name',
@@ -138,6 +138,14 @@ export const en = {
   composerChipConnectorOff: 'Disabled for this chat',
   composerManage: 'Manage connectors',
 
+  // Hero toolbar quick pickers (recently downloaded)
+  pickerExperts: 'Experts',
+  pickerSkills: 'Skills',
+  pickerExpertEmpty: 'No downloaded experts yet.',
+  pickerSkillEmpty: 'No downloaded skills yet.',
+  pickerMoreExperts: 'Summon more experts',
+  pickerMoreSkills: 'Summon more skills',
+
   // Common
   search: 'Search',
   searchPlaceholder: 'Search by name or description…',
@@ -155,9 +163,9 @@ export const en = {
 export type MarketplaceKey = keyof typeof en
 
 export const zh: Record<MarketplaceKey, string> = {
-  nav: '应用市场',
-  title: '应用市场',
-  subtitle: '专家、技能、连接器 —— 拓展你的智能体。',
+  nav: '数字员工',
+  title: '数字员工',
+  subtitle: '专家、技能、连接器 —— 组建你的数字员工团队。',
   close: '关闭',
 
   // Tabs
@@ -199,7 +207,7 @@ export const zh: Record<MarketplaceKey, string> = {
 
   // Publish skill
   skillPublish: '发布技能',
-  skillPublishHint: '创建新技能并发布到应用市场',
+  skillPublishHint: '创建新技能并发布到数字员工',
   skillPublishTitle: '发布技能',
   skillPublishIntro: '创建一个技能并发布到 skill.dualpaw.com。需要 API token。',
   skillPublishNameLabel: '技能名称',
@@ -287,6 +295,14 @@ export const zh: Record<MarketplaceKey, string> = {
   composerChipConnectorOn: '已启用 · 已授权',
   composerChipConnectorOff: '已关闭 · 本次对话不调用',
   composerManage: '管理连接器',
+
+  // 顶部工具栏快捷选择框（最近下载）
+  pickerExperts: '专家',
+  pickerSkills: '技能',
+  pickerExpertEmpty: '还没有已下载的专家',
+  pickerSkillEmpty: '还没有已下载的技能',
+  pickerMoreExperts: '召唤更多专家',
+  pickerMoreSkills: '召唤更多技能',
 
   // Common
   search: '搜索',
